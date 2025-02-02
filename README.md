@@ -64,7 +64,7 @@ WasteNot/
 3. **Branching Strategy:**
    - Use feature branches for development (e.g., `feature/aws-auth`, `feature/mobile-ui`, `feature/web-integration`).
    - Create pull requests for code reviews.
-   - See [CONTRIBUTING.md](CONTRIBUTING.md) for further details (if available).
+   - See [CONTRIBUTING.md](CONTRIBUTING.md) for further details.
 
 ## Sprint 1 Goals
 
