@@ -9,17 +9,17 @@ import SwiftUI
 
 @main
 struct WasteNotMobileApp: App {
-    // Keep track of whether the user is logged in
     @State private var isAuthenticated = false
+    @StateObject var prototypeSettings = PrototypeSettings()  // shared settings
 
     var body: some Scene {
         WindowGroup {
             if isAuthenticated {
-                // Show the main view after login
                 HomeTabView()
+                    .environmentObject(prototypeSettings)
             } else {
-                // Show the login page by default
                 LoginView(isAuthenticated: $isAuthenticated)
+                    .environmentObject(prototypeSettings)
             }
         }
     }
