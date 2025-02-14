@@ -3,6 +3,7 @@ import Navbar from './Navbar';
 import Home from './Home';
 import Inventory from './Inventory';
 import Scan from './Scan';
+import Sensor from './Sensor';
 import CommunitySwap from './CommunitySwap';
 import Profile from './Profile';
 import Login from './Login';
@@ -28,6 +29,7 @@ function MainContent() {
           <Route path="/home" element={<Home />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/scan" element={<Scan />} />
+          <Route path="/sensor" element={<Sensor />} />
           <Route path="/communityswap" element={<CommunitySwap />} />
           <Route path="/profile" element={<Profile />} />
         </Routes>

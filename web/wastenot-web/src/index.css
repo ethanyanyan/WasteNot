@@ -5,25 +5,34 @@
   font-family: "Quicksand";
   color: #333;
 }
-.navbar {
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  max-width: 600px;
-  margin: 0 auto;
-  border-bottom: 1px solid #f2f2f2;
-}
 .navbar h1 {
   color: green;
 }
-.navbar .links {
-  margin-left: auto;
+
+.navbar {
+  padding: 10px 20px;  /* Reduce padding to save space */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Ensures space distribution */
+  max-width: 100%; /* Allow full width */
+  margin: 0 auto;
+  border-bottom: 1px solid #f2f2f2;
+  flex-wrap: nowrap; /* Prevents wrapping */
+  overflow-x: auto; /* Allows scrolling if content overflows */
 }
+
+.navbar .links {
+  display: flex;
+  gap: 16px; /* Space between links */
+  flex-wrap: nowrap; /* Prevents wrapping */
+}
+
 .navbar a {
-  margin-left: 16px;
+  white-space: nowrap; /* Prevents breaking into new lines */
   text-decoration: none;
   padding: 6px;
 }
+
 .navbar a:hover {
   color: #f1356d;
 }

@@ -6,6 +6,7 @@ const Navbar = () => {
                 <a href="/Home">Home</a>
                 <a href="/Inventory">Inventory</a>
                 <a href="/scan">Scan</a>
+                <a href="/sensor">Sensor</a>
                 <a href="/communitySwap">Community Swap</a>
                 <a href="/profile">Profile</a>
             </div>

@@ -1,0 +1,36 @@
+.scan-container {
+    text-align: center;
+    margin: 40px auto;
+    max-width: 400px;
+}
+
+h2 {
+    font-size: 20px;
+    margin-top: 10px;
+}
+
+p {
+    font-size: 16px;
+    color: #333;
+    margin: 10px 0;
+}
+
+.scan-button {
+    color: blue;
+    background: none;
+    border: none;
+    font-size: 16px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.scan-button:hover {
+    text-decoration: none;
+}
+
+.last-scan {
+    font-size: 14px;
+    color: gray;
+    margin-top: 15px;
+}
