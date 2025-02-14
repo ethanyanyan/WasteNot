@@ -1,0 +1,51 @@
+.sensor-container {
+    text-align: center;
+    margin: 40px auto;
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+h2 {
+    font-size: 20px;
+    margin-top: 10px;
+}
+
+p {
+    font-size: 16px;
+    color: #333;
+    margin: 10px 0;
+}
+
+.sensor-button {
+    color: blue;
+    background: none;
+    border: none;
+    font-size: 16px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.sensor-button:hover {
+    text-decoration: none;
+}
+
+.sensor-list {
+    background: #f5f5f5;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 15px;
+}
+
+.sensor-item {
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 5px 0;
+    font-size: 16px;
+    text-align: left;
+}

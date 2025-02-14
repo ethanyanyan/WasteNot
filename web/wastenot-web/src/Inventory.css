@@ -1,0 +1,48 @@
+.inventory {
+    padding: 20px;
+    max-width: 400px;
+    margin: auto;
+    text-align: center;
+  }
+  
+  .inventory h2 {
+    color: #333;
+  }
+  
+  .inventory-list {
+    margin: 20px 0;
+  }
+  
+  .inventory-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    background: #f9f9f9;
+  }
+  
+  .inventory-actions {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  button {
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+  }
+  
+  .add-btn {
+    background-color: #4CAF50;
+    color: white;
+  }
+  
+  .remove-btn {
+    background-color: #FF5733;
+    color: white;
+  }
+  
