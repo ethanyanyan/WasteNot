@@ -6,15 +6,15 @@ const Scan = () => {
 
     const handleScan = () => {
         // Simulate scanning action
-        alert("Simulating receipt scan...");
+        alert("Simulating receipt upload...");
     };
 
     return ( 
         <div className="scan-container">
-            <h1>Scan</h1>
-            <h2>Approach A: Scan Receipts</h2>
-            <p>Scan your grocery receipt to auto-populate your inventory.</p>
-            <button className="scan-button" onClick={handleScan}>Scan Receipt</button>
+            <h1>Receipt/Barcode</h1>
+            <h2>Approach A: Upload Receipts or Barcodes</h2>
+            <p>Upload your grocery receipt or barcode to auto-populate your inventory.</p>
+            <button className="upload-button" onClick={handleScan}>Upload Receipt</button>
             <p className="last-scan">{lastScan}</p>
         </div>
      );
