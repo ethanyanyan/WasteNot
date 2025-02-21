@@ -51,6 +51,14 @@ yarn-error.log*
 .env.production.local
 
 # ========================
+# Backend (Node.js / TypeScript)
+# ========================
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/.env
+
+# ========================
 # IDEs & Editors
 # ========================
 .vscode/
