@@ -1,3 +1,5 @@
+# serverless.yml
+
 service: washten-backend
 
 provider:
@@ -6,6 +8,8 @@ provider:
   region: us-east-1
   environment:
     DYNAMODB_TABLE: Inventory
+    USERS_TABLE: Users
+    COGNITO_USER_POOL_ID: ${env:COGNITO_USER_POOL_ID}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -30,3 +34,7 @@ functions:
       - http:
           path: /{proxy+}
           method: any
+          authorizer:
+            type: COGNITO_USER_POOLS
+            authorizerId:
+              Ref: ApiGatewayAuthorizer # This is created by Serverless when using Cognito in the provider config

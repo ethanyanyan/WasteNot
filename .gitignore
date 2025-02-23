@@ -68,3 +68,10 @@ backend/.env
 # Miscellaneous
 # ========================
 .DS_Store
+
+# ========================
+# Secrets
+# ========================
+Secrets.plist
+GoogleService-Info.plist
+mobile/WasteNotMobile/WasteNotMobile/Secrets.plist
