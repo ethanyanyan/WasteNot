@@ -1,5 +1,5 @@
 //
-//  BarcodeScannerView.swift
+//  Views/Home/Scan/BarcodeScannerView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.

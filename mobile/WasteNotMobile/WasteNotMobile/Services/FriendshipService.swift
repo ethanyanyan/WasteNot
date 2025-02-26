@@ -1,5 +1,5 @@
 //
-//  FriendshipService.swift
+//  Services/FriendshipService.swift
 //  cs8803
 //
 //  Created by Ethan Yan on 21/1/25.

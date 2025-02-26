@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 struct FeedView: View {
     @State private var posts: [Post] = []
-    @State private var userNames: [String: String] = [:] // Map userId to displayName
+    @State private var userNames: [String: String] = [:] // Map userId to username
     @State private var statusMessage: String?
 
     private let db = Firestore.firestore()
@@ -148,8 +148,8 @@ struct FeedView: View {
 
                 if let document = document, document.exists {
                     let data = document.data() ?? [:]
-                    let displayName = data["displayName"] as? String ?? "Unknown User"
-                    self.userNames[document.documentID] = displayName
+                    let username = data["username"] as? String ?? "Unknown User"
+                    self.userNames[document.documentID] = username
                 }
             }
         }

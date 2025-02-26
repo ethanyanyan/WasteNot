@@ -32,7 +32,7 @@ struct MyFriendsView: View {
 
             List(friends) { user in
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(user.displayName)
+                    Text(user.username)
                         .font(.headline)
                     Text(user.email)
                         .font(.subheadline)
@@ -113,9 +113,9 @@ struct MyFriendsView: View {
 
                         if let document = document, document.exists {
                             let userData = document.data() ?? [:]
-                            let displayName = userData["displayName"] as? String ?? "(No Name)"
+                            let username = userData["username"] as? String ?? "(No Name)"
                             let email = userData["email"] as? String ?? "(No Email)"
-                            let user = UserProfile(id: friendId, displayName: displayName, email: email)
+                            let user = UserProfile(id: friendId, username: username, email: email)
 
                             DispatchQueue.main.async {
                                 tempFriends.append(user)

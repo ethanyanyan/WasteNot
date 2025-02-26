@@ -1,5 +1,5 @@
 //
-//  ScanView.swift
+//  Views/Home/Scan/ScanView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.

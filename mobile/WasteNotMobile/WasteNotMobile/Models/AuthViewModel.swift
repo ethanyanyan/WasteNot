@@ -7,6 +7,7 @@
 
 import Foundation
 import FirebaseAuth
+import FirebaseFirestore
 
 class AuthViewModel: ObservableObject {
     @Published var currentUser: User? = Auth.auth().currentUser
@@ -79,18 +80,31 @@ class AuthViewModel: ObservableObject {
                 if let error = error {
                     completion(.failure(error))
                 } else if let user = authResult?.user {
-                    user.sendEmailVerification { emailError in
-                        DispatchQueue.main.async {
-                            if let emailError = emailError {
-                                completion(.failure(emailError))
-                            } else {
-                                do {
-                                    try Auth.auth().signOut()
-                                } catch {
-                                    print("Error signing out: \(error.localizedDescription)")
+                    // Create a Firestore reference
+                    let db = Firestore.firestore()
+                    // Save the user data to Firestore with a createdAt field
+                    db.collection("users").document(user.uid).setData([
+                        "email": email,
+                        "createdAt": FieldValue.serverTimestamp()
+                    ]) { error in
+                        if let error = error {
+                            completion(.failure(error))
+                        } else {
+                            // Send email verification
+                            user.sendEmailVerification { emailError in
+                                DispatchQueue.main.async {
+                                    if let emailError = emailError {
+                                        completion(.failure(emailError))
+                                    } else {
+                                        do {
+                                            try Auth.auth().signOut()
+                                        } catch {
+                                            print("Error signing out: \(error.localizedDescription)")
+                                        }
+                                        self?.verificationMessage = "Sign up successful. A verification email has been sent. Please verify your email before logging in."
+                                        completion(.success(()))
+                                    }
                                 }
-                                self?.verificationMessage = "Sign up successful. A verification email has been sent. Please verify your email before logging in."
-                                completion(.success(()))
                             }
                         }
                     }

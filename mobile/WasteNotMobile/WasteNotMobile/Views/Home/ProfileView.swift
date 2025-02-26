@@ -13,7 +13,7 @@ import CoreLocation
 import Cloudinary
 
 struct ProfileView: View {
-    @State private var displayName: String = ""
+    @State private var username: String = ""
     @State private var email: String = ""
     @State private var location: String = ""
     @State private var avatarURL: URL?
@@ -98,7 +98,7 @@ struct ProfileView: View {
                     Text("Display Name")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    TextField("Display Name", text: $displayName)
+                    TextField("Display Name", text: $username)
                     
                     Text("Location")
                         .font(.caption)
@@ -200,7 +200,7 @@ struct ProfileView: View {
             }
             if let document = document, document.exists {
                 let data = document.data() ?? [:]
-                self.displayName = data["displayName"] as? String ?? ""
+                self.username = data["username"] as? String ?? ""
                 self.location = data["location"] as? String ?? ""
                 
                 if let avatarString = data["avatarURL"] as? String,
@@ -243,7 +243,7 @@ struct ProfileView: View {
         guard let user = Auth.auth().currentUser else { return }
         
         let userData: [String: Any] = [
-            "displayName": displayName,
+            "username": username,
             "location": location,
             "email": email
             // "avatarURL" is set in uploadAvatar
