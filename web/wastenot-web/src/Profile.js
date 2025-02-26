@@ -1,6 +1,20 @@
 import "./Profile.css";
+import { auth } from "./firebase";
+import { signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 const Profile = ({ userData }) => {
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            navigate("/"); // Redirect back to login page
+        } catch (error) {
+            console.error("Logout failed:", error);
+        }
+    };
+
     return ( 
         <div className="profile-container">
             <h2>Your Profile</h2>
@@ -14,6 +28,9 @@ const Profile = ({ userData }) => {
             ) : (
                 <p>Loading user data...</p>
             )}
+
+            {/* Logout Button */}
+            <button className="logout-button" onClick={handleLogout}>Logout</button>
         </div>
      );
 }
