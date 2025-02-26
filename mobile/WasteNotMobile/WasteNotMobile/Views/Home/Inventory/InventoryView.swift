@@ -1,5 +1,5 @@
 //
-//  InventoryView.swift
+//  Views/Home/Inventory/InventoryView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.
@@ -9,25 +9,12 @@ import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 
-struct InventoryItem: Identifiable {
-    var id: String
-    var barcode: String
-    var itemName: String
-    var quantity: Int
-    var lastUpdated: Date
-    var productDescription: String
-    var imageURL: String
-    var ingredients: String
-    var nutritionFacts: String
-    var brand: String
-    var title: String
-}
-
 struct InventoryView: View {
     @State private var inventoryItems: [InventoryItem] = []
     @State private var errorMessage: String?
+    @State private var selectedItem: InventoryItem?
+    @State private var isAddingNewItem: Bool = false
     
-    // Firestore reference
     private let db = Firestore.firestore()
     
     var body: some View {
@@ -60,17 +47,34 @@ struct InventoryView: View {
                             .font(.headline)
                         Text("Quantity: \(item.quantity)")
                             .font(.subheadline)
+                        if let reminder = item.reminderDate {
+                            Text("Reminder: \(reminder, formatter: itemDateFormatter)")
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                        }
                         Text("Last Updated: \(item.lastUpdated, formatter: itemDateFormatter)")
                             .font(.caption)
                             .foregroundColor(.gray)
                     }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedItem = item
+                }
             }
             .navigationTitle("My Inventory")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Refresh") {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button {
                         fetchInventory()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    
+                    Button {
+                        isAddingNewItem = true
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
@@ -82,6 +86,20 @@ struct InventoryView: View {
                 set: { _ in errorMessage = nil }
             )) { error in
                 Alert(title: Text("Error"), message: Text(error.message), dismissButton: .default(Text("OK")))
+            }
+            .sheet(item: $selectedItem, onDismiss: {
+                fetchInventory()
+            }) { item in
+                InventoryEditView(item: item, onSave: {
+                    fetchInventory()
+                })
+            }
+            .sheet(isPresented: $isAddingNewItem, onDismiss: {
+                fetchInventory()
+            }) {
+                InventoryAddView {
+                    fetchInventory()
+                }
             }
         }
     }
@@ -107,8 +125,15 @@ struct InventoryView: View {
                           let ingredients = data["ingredients"] as? String,
                           let nutritionFacts = data["nutritionFacts"] as? String,
                           let brand = data["brand"] as? String,
-                          let title = data["title"] as? String else {
+                          let title = data["title"] as? String,
+                          let category = data["category"] as? String else {
                         return nil
+                    }
+                    let reminderTimestamp: Timestamp?
+                    if let ts = data["reminderDate"] as? Timestamp {
+                        reminderTimestamp = ts
+                    } else {
+                        reminderTimestamp = nil
                     }
                     
                     return InventoryItem(
@@ -122,7 +147,9 @@ struct InventoryView: View {
                         ingredients: ingredients,
                         nutritionFacts: nutritionFacts,
                         brand: brand,
-                        title: title
+                        title: title,
+                        reminderDate: reminderTimestamp?.dateValue(),
+                        category: category
                     )
                 }
                 DispatchQueue.main.async {

@@ -1,6 +1,6 @@
 //
 //  AppView.swift
-//  cs8803
+//  WasteNot
 //
 //  Created by Ethan Yan on 19/1/25.
 //

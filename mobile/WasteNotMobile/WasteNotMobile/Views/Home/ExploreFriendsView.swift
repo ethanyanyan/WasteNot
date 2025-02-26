@@ -30,7 +30,7 @@ struct ExploreFriendsView: View {
 
             List(exploreUsers) { user in
                 VStack(alignment: .leading) {
-                    Text(user.displayName)
+                    Text(user.username)
                         .font(.headline)
                     Text(user.email)
                         .font(.subheadline)
@@ -64,10 +64,10 @@ struct ExploreFriendsView: View {
             var allUsers: [UserProfile] = snapshot?.documents.compactMap { doc in
                 let data = doc.data()
                 let uid = doc.documentID
-                let displayName = data["displayName"] as? String ?? "(No Name)"
+                let username = data["username"] as? String ?? "(No Name)"
                 let email = data["email"] as? String ?? "(No Email)"
                 
-                return UserProfile(id: uid, displayName: displayName, email: email)
+                return UserProfile(id: uid, username: username, email: email)
             } ?? []
 
             // Step 2: Remove the current user from the list

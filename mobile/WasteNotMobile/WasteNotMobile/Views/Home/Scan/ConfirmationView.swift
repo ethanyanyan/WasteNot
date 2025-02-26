@@ -1,5 +1,5 @@
 //
-//  ConfirmationView.swift
+//  Views/Home/Scan/ConfirmationView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.
@@ -25,6 +25,11 @@ struct ConfirmationView: View {
     @State private var productBrand: String = ""
     @State private var productTitle: String = ""
     
+    // New fields: category and reminder date
+    @State private var category: String = "Dairy"
+    let categories = ["Dairy", "Vegetables", "Frozen", "Bakery", "Meat", "Other"]
+    @State private var reminderDate: Date = Date()
+    
     // Firestore reference
     private let db = Firestore.firestore()
     
@@ -47,8 +52,20 @@ struct ConfirmationView: View {
                         .onAppear {
                             lookupProduct(for: scannedCode)
                         }
-                    TextField("Quantity", text: $quantity)
-                        .keyboardType(.numberPad)
+                    HStack {
+                        Text("Quantity:")
+                        TextField("Quantity", text: $quantity)
+                            .keyboardType(.numberPad)
+                    }
+                }
+                
+                Section(header: Text("Category & Reminder")) {
+                    Picker("Category", selection: $category) {
+                        ForEach(categories, id: \.self) { cat in
+                            Text(cat)
+                        }
+                    }
+                    DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                 }
                 
                 Section {
@@ -72,43 +89,51 @@ struct ConfirmationView: View {
                 }
             }
             .navigationTitle("Confirm Scan")
+            .onAppear {
+                reminderDate = defaultReminderDate(for: category)
+            }
+            .onChange(of: category, perform: { newValue in
+                reminderDate = defaultReminderDate(for: newValue)
+            })
         }
     }
     
     private func updateInventory() {
-        guard let user = Auth.auth().currentUser else {
-            updateStatus = "User not logged in."
+        guard let qty = Int(quantity) else {
+            updateStatus = "Invalid quantity."
             return
         }
-        // Write inventory to subcollection "inventory" under the user's document.
-        let docRef = db.collection("users").document(user.uid).collection("inventory").document()
-        let data: [String: Any] = [
-            "barcode": scannedCode,
-            "itemName": itemName,
-            "quantity": Int(quantity) ?? 1,
-            "lastUpdated": Timestamp(date: Date()),
-            "productDescription": productDescription,
-            "imageURL": productImageURL,
-            "ingredients": ingredients,
-            "nutritionFacts": nutritionFacts,
-            "brand": productBrand,
-            "title": productTitle
-        ]
+        // Build a new item using the scanned code as barcode.
+        let newItem = InventoryItem(
+            id: "", // Will be set by service.
+            barcode: scannedCode,
+            itemName: itemName,
+            quantity: qty,
+            lastUpdated: Date(),
+            productDescription: productDescription,
+            imageURL: productImageURL,
+            ingredients: ingredients,
+            nutritionFacts: nutritionFacts,
+            brand: productBrand,
+            title: productTitle,
+            reminderDate: reminderDate,
+            category: category
+        )
         
-        docRef.setData(data, merge: true) { error in
-            if let error = error {
-                updateStatus = "Error updating inventory: \(error.localizedDescription)"
-            } else {
-                updateStatus = "Inventory updated successfully!"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        InventoryService.shared.addInventoryItem(newItem: newItem) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    updateStatus = "Inventory updated successfully!"
                     onCompletion()
+                case .failure(let error):
+                    updateStatus = "Error updating inventory: \(error.localizedDescription)"
                 }
             }
         }
     }
     
     private func lookupProduct(for barcode: String) {
-        // Construct the URL (do not use the "formatted" parameter)
         guard let url = URL(string: "https://api.barcodelookup.com/v3/products?barcode=\(barcode)&key=\(barcodeLookupAPIKey)") else {
             print("Invalid URL for barcode lookup")
             DispatchQueue.main.async {
@@ -137,15 +162,9 @@ struct ConfirmationView: View {
                     print("Barcode Lookup JSON Response: \(jsonResponse)")
                     if let products = jsonResponse["products"] as? [[String: Any]],
                        let firstProduct = products.first {
-                        // Retrieve brand and title separately
                         let brand = firstProduct["brand"] as? String ?? ""
                         let title = firstProduct["title"] as? String ?? ""
-                        let defaultName: String
-                        if brand.isEmpty {
-                            defaultName = title
-                        } else {
-                            defaultName = title.isEmpty ? brand : "\(brand) \(title)"
-                        }
+                        let defaultName: String = brand.isEmpty ? title : (title.isEmpty ? brand : "\(brand) \(title)")
                         let description = firstProduct["description"] as? String ?? ""
                         let ingredientsValue = firstProduct["ingredients"] as? String ?? ""
                         let nutrition = firstProduct["nutrition_facts"] as? String ?? ""
@@ -179,5 +198,25 @@ struct ConfirmationView: View {
             }
         }
         task.resume()
+    }
+    
+    private func defaultReminderDate(for category: String) -> Date {
+        let now = Date()
+        var daysToAdd = 7
+        switch category {
+        case "Dairy":
+            daysToAdd = 7
+        case "Vegetables":
+            daysToAdd = 5
+        case "Frozen":
+            daysToAdd = 30
+        case "Bakery":
+            daysToAdd = 3
+        case "Meat":
+            daysToAdd = 4
+        default:
+            daysToAdd = 7
+        }
+        return Calendar.current.date(byAdding: .day, value: daysToAdd, to: now) ?? now
     }
 }

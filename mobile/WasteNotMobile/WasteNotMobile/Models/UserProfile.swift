@@ -8,7 +8,7 @@
 
 struct UserProfile: Identifiable {
     let id: String
-    let displayName: String
+    let username: String
     let email: String
     // Potentially store requestSender, status, etc. if you want
 }
