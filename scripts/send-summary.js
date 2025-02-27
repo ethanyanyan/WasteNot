@@ -36,6 +36,7 @@ async function sendExpirySummary() {
       .collection("users")
       .doc(userDoc.id)
       .collection("inventory");
+    console.log("inventoryRef: ", inventoryRef);
     const querySnapshot = await inventoryRef
       .where("reminderDate", ">=", admin.firestore.Timestamp.fromDate(start))
       .where("reminderDate", "<=", admin.firestore.Timestamp.fromDate(end))
