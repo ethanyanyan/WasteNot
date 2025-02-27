@@ -14,7 +14,7 @@ const Navbar = () => {
             <div className="links">
                 <Link to="/home">Home</Link>
                 <Link to="/inventory">Inventory</Link>
-                {!isCommunitySwapPage && !isSensorPage && <Link to="/scan">Receipt (Approach A)</Link>}
+                {!isCommunitySwapPage && !isSensorPage && <Link to="/scan">Scan (Approach A)</Link>}
                 {!isReceiptPage && !isCommunitySwapPage && <Link to="/sensor">Sensor (Approach B)</Link>}
                 {!isSensorPage && !isReceiptPage && <Link to="/communityswap">Community Swap (Approach C)</Link>}
                 <Link to="/profile">Profile</Link>
