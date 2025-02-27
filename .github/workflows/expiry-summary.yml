@@ -18,6 +18,7 @@ jobs:
           node-version: "16"
 
       - name: Install dependencies
+        working-directory: scripts
         run: npm install
 
       - name: Run summary script
