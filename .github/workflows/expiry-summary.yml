@@ -22,6 +22,7 @@ jobs:
         run: npm install
 
       - name: Run summary script
+        working-directory: scripts
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
