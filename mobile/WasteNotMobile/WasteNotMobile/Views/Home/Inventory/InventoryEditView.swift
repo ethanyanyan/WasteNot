@@ -12,6 +12,8 @@ struct InventoryEditView: View {
     var onSave: () -> Void
     
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var toastManager: ToastManager
+    
     @State private var itemName: String
     @State private var quantity: Int
     @State private var productDescription: String
@@ -102,10 +104,12 @@ struct InventoryEditView: View {
                 isSaving = false
                 switch result {
                 case .success:
+                    toastManager.show(message: "Item updated successfully!", isSuccess: true)
                     onSave()
                     presentationMode.wrappedValue.dismiss()
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                    toastManager.show(message: error.localizedDescription, isSuccess: false)
                 }
             }
         }

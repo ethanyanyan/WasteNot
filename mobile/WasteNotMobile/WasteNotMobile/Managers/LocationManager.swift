@@ -1,5 +1,5 @@
 //
-//  LocationManager.swift
+//  App/Managers/LocationManager.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 21/1/25.
@@ -29,7 +29,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             manager.requestWhenInUseAuthorization()
         case .authorizedWhenInUse, .authorizedAlways:
             print("Already authorized")
-            manager.startUpdatingLocation()
+            manager.requestLocation()
         case .denied, .restricted:
             print("Access denied or restricted")
             // Notify user to enable location services
@@ -50,7 +50,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         switch status {
         case .authorizedWhenInUse, .authorizedAlways:
             print("Starting location updates")
-            manager.startUpdatingLocation()
+            manager.requestLocation()
         case .denied, .restricted:
             print("Stopping location updates due to denied/restricted status")
             manager.stopUpdatingLocation()

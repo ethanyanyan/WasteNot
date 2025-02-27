@@ -13,6 +13,8 @@ struct ConfirmationView: View {
     let scannedCode: String
     var onCompletion: () -> Void   // Called when confirmation is done or cancelled
     
+    @EnvironmentObject var toastManager: ToastManager
+    
     @State private var itemName: String = ""
     @State private var quantity: String = "1"
     @State private var updateStatus: String?
@@ -44,63 +46,55 @@ struct ConfirmationView: View {
     }
     
     var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text("Scanned Details")) {
-                    Text("Barcode: \(scannedCode)")
-                    TextField("Item Name", text: $itemName)
-                        .onAppear {
-                            lookupProduct(for: scannedCode)
-                        }
-                    HStack {
-                        Text("Quantity:")
-                        TextField("Quantity", text: $quantity)
-                            .keyboardType(.numberPad)
+        Form {
+            Section(header: Text("Scanned Details")) {
+                Text("Barcode: \(scannedCode)")
+                TextField("Item Name", text: $itemName)
+                    .onAppear {
+                        lookupProduct(for: scannedCode)
                     }
-                }
-                
-                Section(header: Text("Category & Reminder")) {
-                    Picker("Category", selection: $category) {
-                        ForEach(categories, id: \.self) { cat in
-                            Text(cat)
-                        }
-                    }
-                    DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
-                }
-                
-                Section {
-                    Button("Confirm and Update Inventory") {
-                        updateInventory()
-                    }
-                }
-                
-                if let status = updateStatus {
-                    Section {
-                        Text(status)
-                            .foregroundColor(.green)
-                    }
-                }
-                
-                Section {
-                    Button("Cancel") {
-                        onCompletion()
-                    }
-                    .foregroundColor(.red)
+                HStack {
+                    Text("Quantity:")
+                    TextField("Quantity", text: $quantity)
+                        .keyboardType(.numberPad)
                 }
             }
-            .navigationTitle("Confirm Scan")
-            .onAppear {
-                reminderDate = defaultReminderDate(for: category)
+            
+            Section(header: Text("Category & Reminder")) {
+                Picker("Category", selection: $category) {
+                    ForEach(categories, id: \.self) { cat in
+                        Text(cat)
+                    }
+                }
+                DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
             }
-            .onChange(of: category, perform: { newValue in
-                reminderDate = defaultReminderDate(for: newValue)
-            })
+            
+            Section {
+                Button("Confirm and Update Inventory") {
+                    updateInventory()
+                }
+            }
+            
+            Section {
+                Button("Cancel") {
+                    onCompletion()
+                }
+                .foregroundColor(.red)
+            }
         }
+        .navigationTitle("Confirm Scan")
+        .onAppear {
+            reminderDate = defaultReminderDate(for: category)
+        }
+        .onChange(of: category, perform: { newValue in
+            reminderDate = defaultReminderDate(for: newValue)
+        })
     }
     
     private func updateInventory() {
         guard let qty = Int(quantity) else {
             updateStatus = "Invalid quantity."
+            toastManager.show(message: updateStatus ?? "Invalid quantity.", isSuccess: false)
             return
         }
         // Build a new item using the scanned code as barcode.
@@ -124,10 +118,15 @@ struct ConfirmationView: View {
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    updateStatus = "Inventory updated successfully!"
-                    onCompletion()
+                    toastManager.show(message: "Item added successfully!", isSuccess: true)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            onCompletion()
+                        }
+                    }
                 case .failure(let error):
                     updateStatus = "Error updating inventory: \(error.localizedDescription)"
+                    toastManager.show(message: updateStatus ?? "Error", isSuccess: false)
                 }
             }
         }

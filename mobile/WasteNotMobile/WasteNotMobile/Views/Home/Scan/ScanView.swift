@@ -12,6 +12,9 @@ struct ScanView: View {
     @State private var scannedCode: String? = nil
     @State private var isShowingConfirmation = false
     
+    // Binding for selected tab from HomeView
+    @Binding var selectedTab: Tab
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -34,6 +37,7 @@ struct ScanView: View {
                         // Reset after confirmation
                         scannedCode = nil
                         isShowingConfirmation = false
+                        selectedTab = .inventory
                     }),
                     isActive: $isShowingConfirmation,
                     label: { EmptyView() }
