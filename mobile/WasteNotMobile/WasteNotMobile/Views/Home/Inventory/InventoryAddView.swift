@@ -11,6 +11,8 @@ struct InventoryAddView: View {
     var onSave: () -> Void
     
     @Environment(\.presentationMode) var presentationMode
+    @EnvironmentObject var toastManager: ToastManager
+    
     @State private var itemName: String = ""
     @State private var quantity: Int = 1
     @State private var productDescription: String = ""
@@ -98,10 +100,12 @@ struct InventoryAddView: View {
                 isSaving = false
                 switch result {
                 case .success:
+                    toastManager.show(message: "Item added successfully!", isSuccess: true)
                     onSave()
                     presentationMode.wrappedValue.dismiss()
                 case .failure(let error):
                     errorMessage = error.localizedDescription
+                    toastManager.show(message: error.localizedDescription, isSuccess: false)
                 }
             }
         }

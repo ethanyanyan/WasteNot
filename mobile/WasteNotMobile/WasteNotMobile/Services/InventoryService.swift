@@ -86,4 +86,23 @@ class InventoryService {
             }
         }
     }
+    
+    
+    /// Delete Inventory Item
+    func deleteInventoryItem(item: InventoryItem,
+                             completion: @escaping (Result<Void, Error>) -> Void) {
+        guard let user = Auth.auth().currentUser else {
+            completion(.failure(NSError(domain: "InventoryService", code: -1,
+                                        userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
+            return
+        }
+        
+        db.collection("users").document(user.uid).collection("inventory").document(item.id).delete { error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
+            }
+        }
+    }
 }
