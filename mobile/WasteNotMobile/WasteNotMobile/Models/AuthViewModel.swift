@@ -8,17 +8,18 @@
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
 
 class AuthViewModel: ObservableObject {
     @Published var currentUser: User? = Auth.auth().currentUser
     @Published var verificationMessage: String? = nil
     
     init() {
-        // Listen for auth state changes
+        // Listen for auth state changes.
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
             if let user = user {
-                // Reload the user to get the latest email verification status.
+                // Reload user to check email verification status.
                 user.reload { error in
                     DispatchQueue.main.async {
                         if let error = error {
@@ -26,8 +27,8 @@ class AuthViewModel: ObservableObject {
                         } else if user.isEmailVerified {
                             self.currentUser = user
                             self.verificationMessage = nil
+                            self.updateFCMToken()
                         } else {
-                            // If not verified, sign out and set verification message.
                             do {
                                 try Auth.auth().signOut()
                             } catch {
@@ -40,6 +41,27 @@ class AuthViewModel: ObservableObject {
                 }
             } else {
                 self.currentUser = nil
+            }
+        }
+    }
+    
+    // Retrieve the FCM token and store it in Firestore.
+    private func updateFCMToken() {
+        Messaging.messaging().token { token, error in
+            if let error = error {
+                print("Error fetching FCM token: \(error.localizedDescription)")
+                return
+            }
+            guard let token = token, let user = Auth.auth().currentUser else {
+                return
+            }
+            let db = Firestore.firestore()
+            db.collection("users").document(user.uid).updateData(["fcmToken": token]) { error in
+                if let error = error {
+                    print("Error updating FCM token in Firestore: \(error.localizedDescription)")
+                } else {
+                    print("Successfully updated FCM token for user: \(user.uid)")
+                }
             }
         }
     }
@@ -65,6 +87,7 @@ class AuthViewModel: ObservableObject {
                             } else {
                                 self?.currentUser = user
                                 self?.verificationMessage = nil
+                                self?.updateFCMToken()
                                 completion(.success(()))
                             }
                         }
@@ -80,9 +103,7 @@ class AuthViewModel: ObservableObject {
                 if let error = error {
                     completion(.failure(error))
                 } else if let user = authResult?.user {
-                    // Create a Firestore reference
                     let db = Firestore.firestore()
-                    // Save the user data to Firestore with a createdAt field
                     db.collection("users").document(user.uid).setData([
                         "email": email,
                         "createdAt": FieldValue.serverTimestamp()
@@ -90,7 +111,6 @@ class AuthViewModel: ObservableObject {
                         if let error = error {
                             completion(.failure(error))
                         } else {
-                            // Send email verification
                             user.sendEmailVerification { emailError in
                                 DispatchQueue.main.async {
                                     if let emailError = emailError {
