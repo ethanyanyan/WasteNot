@@ -1,21 +1,20 @@
 # WasteNot
 
-WasteNot is a multi-platform application designed to reduce household food waste by helping users manage grocery items and track expiration dates. With both iOS and web interfaces integrated with a serverless AWS backend, WasteNot streamlines grocery item entry, monitors food expiration, and sends timely notifications.
+WasteNot is a multi-platform application designed to reduce household food waste by helping users manage grocery items and track expiration dates. With both iOS and web interfaces integrated with a modern, serverless backend, WasteNot streamlines grocery item entry, monitors food expiration, and sends timely notifications.
 
 ## Features
 
-- **User Authentication:**  
-  Secure sign in/sign up via AWS Cognito.
+- **User Authentication & Data Storage:**  
+  Secure sign in/sign up using Firebase Authentication with data managed in Firestore.
 
-- **Item Entry:**  
-  Scan or manually enter grocery items. Upload images (receipts, barcodes, etc.) to AWS S3.
+- **Item Entry & Barcode Scanning:**  
+  Users can scan or manually enter grocery items. UPC barcodes are converted to detailed item information via the Barcode Lookup API.
 
-- **AWS Backend Integration:**
+- **Photo Storage:**  
+  Upload images (e.g., receipts, barcodes) that are stored in Cloudinary.
 
-  - API endpoints via API Gateway or Amplify DataStore
-  - Data storage in DynamoDB
-  - Scheduled AWS Lambda functions to monitor expiration dates
-  - Notifications via AWS SNS (integrated with Apple APNs and web push)
+- **Automated Daily Emails:**  
+  A GitHub Actions workflow runs scheduled cron jobs that trigger daily email notifications to users using the SendGrid API.
 
 - **Multi-Platform Access:**
   - iOS app (Swift/SwiftUI)
@@ -26,25 +25,63 @@ WasteNot is a multi-platform application designed to reduce household food waste
 - **Frontend:**
 
   - Mobile: iOS (Swift/SwiftUI)
-  - Web: React or Angular (TBD)
+  - Web: React (or similar framework)
 
-- **Backend (AWS Free Tier Services):**
-  - AWS Cognito (User Authentication)
-  - API Gateway / AWS Amplify DataStore
-  - AWS DynamoDB (Data Storage)
-  - AWS S3 (Image Storage)
-  - AWS Lambda (Serverless compute for scheduled tasks)
-  - AWS SNS (Push Notifications)
+- **Backend & External Services:**
+  - **Firebase Authentication:** User Authentication
+  - **Firestore:** Data Storage
+  - **Barcode Lookup API:** Convert UPC to item details
+  - **Cloudinary:** Photo/Image Storage
+  - **GitHub Actions:** Scheduled Cron Jobs
+  - **SendGrid API:** Email Notifications
+
+## Architecture Diagram
+
+Below is the high-level architecture diagram for WasteNot:
+
+```mermaid
+flowchart TD
+    subgraph Clients
+        A[iOS App]
+        B[Web App]
+    end
+
+    subgraph Authentication & Database
+        C[Firebase Auth]
+        D[Firestore]
+    end
+
+    subgraph External Services
+        E[Barcode Lookup API]
+        F[Cloudinary]
+        G[SendGrid API]
+    end
+
+    subgraph Automation
+        H[GitHub Actions (Cron Jobs)]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    A --> D
+    B --> D
+    A -- Scan UPC --> E
+    B -- Scan UPC --> E
+    A -- Upload Photos --> F
+    B -- Upload Photos --> F
+    H --> G
+```
 
 ## Project Structure
 
 ```
 WasteNot/
-├── backend/            # AWS Lambda functions, API configuration, CloudFormation templates
 ├── mobile/             # iOS application code (Swift/SwiftUI)
 ├── web/                # Web application code (React)
-├── docs/               # Documentation (Sprint plans, architecture diagrams, design files, etc.)
-├── prototypes/         # Low-fidelity prototypes and mockups
+├── functions/          # Firebase Cloud Functions (if applicable)
+├── workflows/          # GitHub Actions workflows (cron jobs)
+├── docs/               # Documentation (architecture diagrams, design files, etc.)
 └── README.md
 ```
 
@@ -59,13 +96,10 @@ WasteNot/
 
 2. **Setup Development Environment:**
 
-   - Follow the instructions in the `docs/` folder for AWS configuration and local development setup for both mobile and web apps.
+   - Follow the instructions in the `docs/` folder for Firebase configuration and local development setup for both mobile and web apps.
+   - Configure API keys for Barcode Lookup, Cloudinary, and SendGrid as specified in the project documentation.
 
 3. **Branching Strategy:**
-   - Use feature branches for development (e.g., `feature/aws-auth`, `feature/mobile-ui`, `feature/web-integration`).
+   - Use feature branches for development (e.g., `feature/firebase-auth`, `feature/ios-ui`, `feature/web-integration`).
    - Create pull requests for code reviews.
    - See [CONTRIBUTING.md](CONTRIBUTING.md) for further details.
-
-## Sprint 1 Goals
-
-For Sprint 1, our focus is on setting up the core AWS backend services and creating initial UI/UX prototypes for the iOS and web applications. For details, see our [Sprint 1 Documentation](docs/Sprint1.md).
