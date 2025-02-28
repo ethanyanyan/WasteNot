@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import "./Inventory.css";
 
@@ -25,6 +25,36 @@ const Inventory = () => {
     fetchInventory();
   }, [user]);
 
+  const updateQuantity = async (itemId, newQuantity) => {
+    if (user && newQuantity >= 0) {
+      try {
+        const itemRef = doc(db, `users/${user.uid}/inventory`, itemId);
+        await updateDoc(itemRef, { quantity: newQuantity });
+
+        setInventoryItems(prevItems =>
+          prevItems.map(item =>
+            item.id === itemId ? { ...item, quantity: newQuantity } : item )
+        );
+      } catch (error) {
+        console.error("Error updating quantity:", error);
+      }
+    }
+  };
+
+  const removeItem = async (itemId) => {
+    if (user) {
+      try {
+        const itemRef = doc(db, `users/${user.uid}/inventory`, itemId);
+        await deleteDoc(itemRef);
+
+        // Remove from state
+        setInventoryItems(prevItems => prevItems.filter(item => item.id !== itemId));
+      } catch (error) {
+        console.error("Error removing item:", error);
+      }
+    }
+  };
+
   return (
     <div className="inventory">
       <h2>Fridge Inventory</h2>
@@ -34,6 +64,12 @@ const Inventory = () => {
             <div key={item.id} className="inventory-item">
               <span>{item.title} {item.imageURL && <img src={item.imageURL} alt={item.title} width="50" />}</span>
               <span>Expires: {item.reminderDate ? new Date(item.reminderDate.seconds * 1000).toLocaleDateString() : "Unknown"}</span>
+              <div className="quantity-controls">
+                <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
+                <span>{item.quantity}</span>
+                <button onClick={() => updateQuantity(item.id, item.quantity + 1)}>+</button>
+              </div>
+              <button className="remove-button" onClick={() => removeItem(item.id)}>Remove</button>
             </div>
           ))
         ) : (

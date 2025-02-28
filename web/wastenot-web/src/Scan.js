@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import "./Scan.css";
 import Quagga from "quagga";
 import { db, auth } from "./firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, Timestamp } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const Scan = () => {
@@ -10,16 +10,23 @@ const Scan = () => {
     const [error, setError] = useState("");
     const [isCameraActive, setIsCameraActive] = useState(false);
     const scannerRef = useRef(null);
+    const hasAlertedRef = useRef(false);
     const [user] = useAuthState(auth);
 
     // Function to start the webcam scanner
     const startWebcamScanner = () => {
         if (!scannerRef.current) {
             setError("Camera view not found. Please refresh the page.");
+            console.error("Camera view not found.");
             return;
         }
 
         setIsCameraActive(true);
+        console.log("Initializing Quagga...");
+        hasAlertedRef.current = false;
+
+        Quagga.stop();
+        Quagga.offDetected();
 
         Quagga.init(
             {
@@ -30,7 +37,7 @@ const Scan = () => {
                     constraints: {
                         width: 640,
                         height: 480,
-                        facingMode: "environment",
+                        facingMode: "user",
                     },
                 },
                 decoder: {
@@ -52,25 +59,28 @@ const Scan = () => {
                     setIsCameraActive(false);
                     return;
                 }
-                console.log("Quagga webcam initialized.");
+                console.log("Quagga webcam initialized successfully.");
                 Quagga.start();
             }
         );
 
-        // Detect barcode
         Quagga.onDetected((data) => {
+            if (hasAlertedRef.current) return;
+            hasAlertedRef.current = true;
+
             const detectedBarcode = data.codeResult.code;
-            console.log("Webcam Barcode Detected:", detectedBarcode);
+            console.log("Detected Barcode:", detectedBarcode);
             setBarcode(detectedBarcode);
             setError("");
 
-            stopWebcamScanner(); // Stop scanner immediately to prevent duplicate scans
-            fetchProductInfo(detectedBarcode); // Fetch and store product data
+            stopWebcamScanner();
+            fetchProductInfo(detectedBarcode);
         });
     };
 
     // Function to stop the webcam scanner
     const stopWebcamScanner = () => {
+        Quagga.offDetected();
         Quagga.stop();
         setIsCameraActive(false);
     };
@@ -78,6 +88,7 @@ const Scan = () => {
     // Fetch product info from Open Food Facts API
     const fetchProductInfo = async (barcode) => {
         if (!user) {
+            console.error("No authenticated user. Cannot save product.");
             alert("You must be logged in to save items.");
             return;
         }
@@ -86,48 +97,58 @@ const Scan = () => {
             const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
             const data = await response.json();
 
-            if (data.status === 1) {
-                const product = data.product;
-
-                const expirationDate = product.expiration_date ? new Date(product.expiration_date) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-                const productData = {
-                    barcode: barcode,
-                    brand: product.brands || "Unknown",
-                    category: product.categories || "Other",
-                    imageURL: product.image_url || "",
-                    ingredients: product.ingredients_text || "No ingredient data available.",
-                    itemName: product.product_name || "Unnamed Product",
-                    lastUpdated: new Date(),
-                    nutritionFacts: product.nutriments
-                        ? `Energy ${product.nutriments.energy_kcal || "N/A"} kcal, Fat ${product.nutriments.fat || "N/A"} g, Carbs ${product.nutriments.carbohydrates || "N/A"} g, Sugars ${product.nutriments.sugars || "N/A"} g, Fiber ${product.nutriments.fiber || "N/A"} g, Protein ${product.nutriments.proteins || "N/A"} g, Salt ${product.nutriments.salt || "N/A"} g`
-                        : "No nutrition data available.",
-                    productDescription: product.generic_name || "No description available.",
-                    quantity: 1,
-                    reminderDate: expirationDate, // Use expiration date if available
-                    title: product.product_name || "Unnamed Product"
-                };
-
-                // Save product to Firestore under the logged-in user's inventory
-                await saveProductToInventory(barcode, productData);
-            } else {
+            if (data.status !== 1) {
                 alert("Product not found in Open Food Facts database.");
+                console.warn("Product not found:", barcode);
+                return;
             }
+
+            const product = data.product;
+            const expirationDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default to 7 days from today
+
+            const productData = {
+                barcode: barcode,
+                brand: product.brands || "Unknown",
+                category: product.categories || "Other",
+                imageURL: product.image_url || "",
+                ingredients: product.ingredients_text || "No ingredient data available.",
+                itemName: product.product_name || "Unnamed Product",
+                lastUpdated: new Date(),
+                nutritionFacts: product.nutriments
+                    ? `Energy ${product.nutriments.energy_kcal || "N/A"} kcal, Fat ${product.nutriments.fat || "N/A"} g, Carbs ${product.nutriments.carbohydrates || "N/A"} g, Sugars ${product.nutriments.sugars || "N/A"} g, Fiber ${product.nutriments.fiber || "N/A"} g, Protein ${product.nutriments.proteins || "N/A"} g, Salt ${product.nutriments.salt || "N/A"} g`
+                    : "No nutrition data available.",
+                productDescription: product.generic_name || "No description available.",
+                quantity: 1,
+                reminderDate: isNaN(expirationDate.getTime()) ? null : Timestamp.fromDate(expirationDate),
+                title: product.product_name || "Unnamed Product",
+            };
+
+            console.log("Fetched product data:", productData);
+
+            await saveProductToInventory(barcode, productData);
         } catch (error) {
             console.error("Error fetching product data:", error);
-            alert("Failed to retrieve product details.");
+            alert("Failed to retrieve product details. Check network connection.");
         }
     };
 
     // Save product data to Firestore under the logged-in user's inventory
     const saveProductToInventory = async (barcode, productData) => {
+        if (!user) {
+            console.error("No authenticated user. Cannot write to Firestore.");
+            return;
+        }
+
         try {
             const userInventoryRef = doc(db, `users/${user.uid}/inventory/${barcode}`);
+            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${barcode}`);
+            console.log("Product data being saved:", productData);
+
             await setDoc(userInventoryRef, productData);
             alert("Product saved to inventory!");
         } catch (error) {
             console.error("Error saving product:", error);
-            alert("Failed to save product.");
+            alert("Failed to save product. Check Firestore rules and console for details.");
         }
     };
 
@@ -137,17 +158,14 @@ const Scan = () => {
             <h2>Approach A: Scan Receipts or Barcodes with Webcam</h2>
             <p>Scan your grocery receipt or barcode to auto-populate your inventory.</p>
 
-            {/* Webcam Barcode Scanner */}
             <button onClick={startWebcamScanner} disabled={isCameraActive}>
                 {isCameraActive ? "Scanning..." : "Scan with Webcam"}
             </button>
 
-            {/* Scanner View */}
             <div ref={scannerRef} id="interactive" className="viewport"></div>
 
             {isCameraActive && <button onClick={stopWebcamScanner}>Stop Scanning</button>}
 
-            {/* Display detected barcode */}
             {barcode && <p className="barcode-result">Detected Barcode: {barcode}</p>}
             {error && <p className="error">{error}</p>}
         </div>
