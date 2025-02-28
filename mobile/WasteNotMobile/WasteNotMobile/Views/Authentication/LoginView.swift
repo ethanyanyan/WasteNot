@@ -122,11 +122,6 @@ struct LoginView: View {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-<<<<<<< HEAD
-        // For preview, pass a constant binding
-        LoginView(isAuthenticated: .constant(false))
-=======
         LoginView(authVM: AuthViewModel())
->>>>>>> main
     }
 }
