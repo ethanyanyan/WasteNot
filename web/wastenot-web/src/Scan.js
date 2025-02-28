@@ -21,12 +21,16 @@ const Scan = () => {
             return;
         }
 
+        // Prevent stopping if Quagga hasn't started yet
+        if (Quagga._scanner) {
+            console.log("Stopping previous Quagga instance...");
+            Quagga.stop();
+            Quagga.offDetected();
+        }
+
         setIsCameraActive(true);
         console.log("Initializing Quagga...");
         hasAlertedRef.current = false;
-
-        Quagga.stop();
-        Quagga.offDetected();
 
         Quagga.init(
             {
