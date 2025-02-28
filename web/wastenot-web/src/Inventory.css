@@ -2,10 +2,8 @@
   text-align: center;
   margin: 40px auto;
   max-width: 600px; /* Increased width */
-  background-color: #f5fff5; /* Light green background */
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0px 4px 10px rgba(0, 128, 0, 0.2);
 }
 
 h2 {
@@ -25,7 +23,6 @@ h2 {
   border: 2px solid #008000; /* Green border */
   border-radius: 8px;
   margin-bottom: 30px;
-  background: #f0fff0; /* Lighter green background */
   box-shadow: 0px 4px 8px rgba(0, 128, 0, 0.3);
   width: 100%; /* Adjusted to fit broader layout */
 }
