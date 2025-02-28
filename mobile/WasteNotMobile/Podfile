@@ -1,0 +1,29 @@
+# Uncomment the next line to define a global platform for your project
+# platform :ios, '9.0'
+
+target 'WasteNotMobile' do
+  # Comment the next line if you don't want to use dynamic frameworks
+  use_frameworks!
+
+  # Pods for WasteNotMobile
+  pod 'Firebase/Core'
+  pod 'Firebase/Auth'
+  pod 'Firebase/Database'
+  pod 'Firebase/Storage'
+  pod 'Firebase/Analytics'
+  pod 'Firebase/Crashlytics'
+  pod 'Firebase/Firestore'
+  pod 'Firebase/Messaging'
+
+  pod 'Cloudinary', '~> 3.1.0'
+
+  target 'WasteNotMobileTests' do
+    inherit! :search_paths
+    # Pods for testing
+  end
+
+  target 'WasteNotMobileUITests' do
+    # Pods for testing
+  end
+
+end
