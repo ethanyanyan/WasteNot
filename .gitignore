@@ -59,6 +59,11 @@ backend/build/
 backend/.env
 
 # ========================
+# Web
+# ========================
+web/wastenot-web/.env
+
+# ========================
 # IDEs & Editors
 # ========================
 .vscode/
