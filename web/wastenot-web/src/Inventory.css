@@ -1,48 +1,97 @@
 .inventory {
-    padding: 20px;
-    max-width: 400px;
-    margin: auto;
-    text-align: center;
-  }
-  
-  .inventory h2 {
-    color: #333;
-  }
-  
-  .inventory-list {
-    margin: 20px 0;
-  }
-  
-  .inventory-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    background: #f9f9f9;
-  }
-  
-  .inventory-actions {
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  button {
-    padding: 10px;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-    border-radius: 5px;
-  }
-  
-  .add-btn {
-    background-color: #4CAF50;
-    color: white;
-  }
-  
-  .remove-btn {
-    background-color: #FF5733;
-    color: white;
-  }
-  
+  text-align: center;
+  margin: 40px auto;
+  max-width: 600px; /* Increased width */
+  background-color: #f5fff5; /* Light green background */
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 128, 0, 0.2);
+}
+
+h2 {
+  color: #006400; /* Dark green */
+  font-weight: bold;
+}
+
+.inventory-list {
+  margin: 20px 0;
+}
+
+.inventory-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 2px solid #008000; /* Green border */
+  border-radius: 8px;
+  margin-bottom: 30px;
+  background: #f0fff0; /* Lighter green background */
+  box-shadow: 0px 4px 8px rgba(0, 128, 0, 0.3);
+  width: 100%; /* Adjusted to fit broader layout */
+}
+
+.quantity-controls {
+  display: flex;
+  align-items: center; /* Ensures vertical alignment */
+  justify-content: center; /* Centers buttons and number */
+  gap: 5px; /* Reduce gap for better spacing */
+}
+
+.quantity-controls button {
+  width: 35px; /* Slightly increase size for better alignment */
+  height: 35px;
+  text-align: center;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%; /* Makes them more visually centered */
+}
+
+.quantity-controls span {
+  font-size: 18px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px; /* Ensure a consistent width */
+}
+
+.inventory-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+button {
+  background-color: #008000; /* Green */
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-top: 10px;
+}
+
+button:hover {
+  background-color: #006400; /* Darker Green */
+}
+
+.add-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.add-btn:hover {
+  background-color: #388E3C;
+}
+
+.remove-btn {
+  background-color: #FF5733;
+  color: white;
+}
+
+.remove-btn:hover {
+  background-color: #C0392B;
+}
