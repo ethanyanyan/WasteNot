@@ -1,12 +1,13 @@
 import "./Home.css";
+import { Link } from "react-router-dom";
 
 const Home = () => {
     return ( 
         <div className="home">
             <h2>Homepage</h2>
-            <a href="/scan">Barcode/Receipt Scanning Mobile App (Approach A)</a>
-            <a href="/sensor">Smart Fridge Sensor (Approach B)</a>
-            <a href="/communitySwap">Community Swap / Donation Platform (Approach C)</a>
+            <Link to="/scan">Barcode/Receipt Scanning Mobile App (Approach A)</Link>
+            <Link to="/sensor">Smart Fridge Sensor (Approach B)</Link>
+            <Link to="/communityswap">Community Swap / Donation Platform (Approach C)</Link>
         </div>
      );
 }

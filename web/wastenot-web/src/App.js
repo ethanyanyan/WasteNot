@@ -44,7 +44,7 @@ function App() {
                         <Route path="/inventory" element={user ? <Inventory /> : <Navigate to="/" />} />
                         <Route path="/scan" element={user ? <Scan /> : <Navigate to="/" />} />
                         <Route path="/sensor" element={user ? <Sensor /> : <Navigate to="/" />} />
-                        <Route path="/communityswap" element={user ? <CommunitySwap /> : <Navigate to="/" />} />
+                        <Route path="/communitySwap" element={user ? <CommunitySwap /> : <Navigate to="/" />} />
                         <Route path="/profile" element={user ? <Profile userData={userData} /> : <Navigate to="/" />} />
                     </Routes>
                 </div>
