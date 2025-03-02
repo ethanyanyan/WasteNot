@@ -40,7 +40,6 @@ button:hover {
     font-size: 16px;
     text-decoration: underline;
     cursor: pointer;
-<<<<<<< HEAD
 }
 
 .upload-button:hover {
@@ -66,17 +65,4 @@ button:hover {
 /* Move Stop Scanning button further down */
 .stop-scanning {
     margin-top: 40px;
-=======
-    margin-top: 15px;
-}
-
-.scan-button:hover {
-    text-decoration: none;
-}
-
-.last-scan {
-    font-size: 14px;
-    color: gray;
-    margin-top: 15px;
->>>>>>> main
 }
