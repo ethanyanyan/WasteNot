@@ -134,7 +134,7 @@ const Inventory = () => {
 
   return (
     <div className="inventory">
-      <h2>Fridge Inventory</h2>
+      <h1>Fridge Inventory</h1>
       <div className="inventory-list">
         {inventoryItems.length > 0 ? (
           inventoryItems.map((item) => (
