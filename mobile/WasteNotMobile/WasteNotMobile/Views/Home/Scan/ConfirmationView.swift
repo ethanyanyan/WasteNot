@@ -27,23 +27,14 @@ struct ConfirmationView: View {
     @State private var productBrand: String = ""
     @State private var productTitle: String = ""
     
-    // New fields: category and reminder date
+    // category and reminder date
     @State private var category: String = "Dairy"
-    let categories = ["Dairy", "Vegetables", "Frozen", "Bakery", "Meat", "Other"]
+    @State private var categories: [String] = ["Dairy", "Vegetables", "Frozen", "Bakery", "Meat", "Other"]
     @State private var reminderDate: Date = Date()
+    @State private var reminderService = ReminderDateService()
     
     // Firestore reference
     private let db = Firestore.firestore()
-    
-    // Load BarcodeLookup API key from Secrets.plist
-    private var barcodeLookupAPIKey: String {
-        guard let filePath = Bundle.main.path(forResource: "Secrets", ofType: "plist"),
-              let plist = NSDictionary(contentsOfFile: filePath),
-              let key = plist["BarcodeLookupAPIKey"] as? String else {
-            fatalError("Could not load API key from Secrets.plist")
-        }
-        return key
-    }
     
     var body: some View {
         Form {
@@ -84,11 +75,13 @@ struct ConfirmationView: View {
         }
         .navigationTitle("Confirm Scan")
         .onAppear {
-            reminderDate = defaultReminderDate(for: category)
+            reminderService.fetchMapping {
+                reminderDate = reminderService.defaultReminderDate(for: category)
+            }
         }
-        .onChange(of: category, perform: { newValue in
-            reminderDate = defaultReminderDate(for: newValue)
-        })
+        .onChange(of: category) { newValue in
+            reminderDate = reminderService.defaultReminderDate(for: newValue)
+        }
     }
     
     private func updateInventory() {
@@ -133,53 +126,66 @@ struct ConfirmationView: View {
     }
     
     private func lookupProduct(for barcode: String) {
-        guard let url = URL(string: "https://api.barcodelookup.com/v3/products?barcode=\(barcode)&key=\(barcodeLookupAPIKey)") else {
-            print("Invalid URL for barcode lookup")
+        // Use the Open Food Facts API v3 endpoint.
+        guard let url = URL(string: "https://world.openfoodfacts.org/api/v3/product/\(barcode).json") else {
+            print("Invalid URL for Open Food Facts lookup")
             DispatchQueue.main.async {
                 self.itemName = "Item: \(barcode)"
             }
             return
         }
         
+        print(url)
+        
         let task = URLSession.shared.dataTask(with: url) { data, response, error in
             if let error = error {
-                print("Barcode lookup error: \(error.localizedDescription)")
+                print("Open Food Facts lookup error: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.itemName = "Item: \(barcode)"
                 }
                 return
             }
+            
             guard let data = data else {
-                print("No data received from barcode lookup")
+                print("No data received from Open Food Facts")
                 DispatchQueue.main.async {
                     self.itemName = "Item: \(barcode)"
                 }
                 return
             }
+            
             do {
                 if let jsonResponse = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                    print("Barcode Lookup JSON Response: \(jsonResponse)")
-                    if let products = jsonResponse["products"] as? [[String: Any]],
-                       let firstProduct = products.first {
-                        let brand = firstProduct["brand"] as? String ?? ""
-                        let title = firstProduct["title"] as? String ?? ""
-                        let defaultName: String = brand.isEmpty ? title : (title.isEmpty ? brand : "\(brand) \(title)")
-                        let description = firstProduct["description"] as? String ?? ""
-                        let ingredientsValue = firstProduct["ingredients"] as? String ?? ""
-                        let nutrition = firstProduct["nutrition_facts"] as? String ?? ""
-                        let images = firstProduct["images"] as? [String] ?? []
-                        let imageURL = images.first ?? ""
+                    // Check if the "product" field exists.
+                    if let product = jsonResponse["product"] as? [String: Any] {
+                        let name = product["product_name"] as? String ?? ""
+                        let brand = product["brands"] as? String ?? ""
+                        // Combine brand and name as before.
+                        let defaultName = brand.isEmpty ? name : (!name.isEmpty ? "\(brand) \(name)" : brand)
+                        let genericName = product["generic_name"] as? String ?? ""
+                        let ingredientsText = product["ingredients_text"] as? String ?? ""
+                        let imageUrl = product["image_url"] as? String ?? ""
+                        
+                        let scannedCategories = product["categories"] as? String ?? ""
+                        let newCategory = scannedCategories.components(separatedBy: ",").first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Other"
+                        if !self.categories.contains(newCategory) {
+                            self.categories.append(newCategory)
+                        }
                         
                         DispatchQueue.main.async {
                             self.itemName = defaultName.isEmpty ? "Item: \(barcode)" : defaultName
                             self.productBrand = brand
-                            self.productTitle = title
-                            self.productDescription = description
-                            self.ingredients = ingredientsValue
-                            self.nutritionFacts = nutrition
-                            self.productImageURL = imageURL
+                            self.productTitle = name
+                            self.productDescription = genericName
+                            self.ingredients = ingredientsText
+                            // Nutrition facts are not directly provided; leave as empty or parse further if needed.
+                            self.nutritionFacts = ""
+                            self.productImageURL = imageUrl
+                            self.category = newCategory
+                            self.reminderDate = self.reminderService.defaultReminderDate(for: newCategory)
                         }
                     } else {
+                        // Fallback if "product" field isn't found.
                         DispatchQueue.main.async {
                             self.itemName = "Item: \(barcode)"
                         }
@@ -190,7 +196,7 @@ struct ConfirmationView: View {
                     }
                 }
             } catch {
-                print("Error parsing barcode lookup response: \(error.localizedDescription)")
+                print("Error parsing Open Food Facts response: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     self.itemName = "Item: \(barcode)"
                 }
