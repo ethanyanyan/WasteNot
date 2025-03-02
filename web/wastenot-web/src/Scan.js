@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import "./Scan.css";
 import Quagga from "quagga";
 import { db, auth } from "./firebase";
-import { doc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, Timestamp } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const Scan = () => {
@@ -144,8 +144,10 @@ const Scan = () => {
         }
 
         try {
-            const userInventoryRef = doc(db, `users/${user.uid}/inventory/${barcode}`);
-            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${barcode}`);
+            const itemId = productData.id || doc(collection(db, `users/${user.uid}/inventory`)).id;
+
+            const userInventoryRef = doc(db, `users/${user.uid}/inventory/${itemId}`);
+            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${itemId}`);
             console.log("Product data being saved:", productData);
 
             await setDoc(userInventoryRef, productData);
