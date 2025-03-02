@@ -14,6 +14,7 @@ target 'WasteNotMobile' do
   pod 'Firebase/Crashlytics'
   pod 'Firebase/Firestore'
   pod 'Firebase/Messaging'
+  pod 'Firebase/RemoteConfig'
 
   pod 'Cloudinary', '~> 3.1.0'
 
