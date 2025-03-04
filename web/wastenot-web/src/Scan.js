@@ -13,6 +13,29 @@ const Scan = () => {
     const hasAlertedRef = useRef(false);
     const [user] = useAuthState(auth);
 
+    const categoryReminderMap = {
+        "Dairy": 10,
+        "Vegetables": 5,
+        "Frozen": 30,
+        "Beverage": 183,
+        "Meat": 4,
+        "Other": 7
+    };
+
+    const predefinedCategories = Object.keys(categoryReminderMap);
+
+    const fuzzyMatchCategory = (inputCategory) => {
+        if (!inputCategory) return "Other";
+
+        const lowerInput = inputCategory.toLowerCase();
+        for (const category of predefinedCategories) {
+            if (lowerInput.includes(category.toLowerCase())) {
+                return category;
+            }
+        }
+        return "Other";
+    };
+
     // Function to start the webcam scanner
     const startWebcamScanner = () => {
         if (!scannerRef.current) {
@@ -108,12 +131,15 @@ const Scan = () => {
             }
 
             const product = data.product;
-            const expirationDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default to 7 days from today
+            const matchedCategory = fuzzyMatchCategory(product.categories);
+            const reminderDays = categoryReminderMap[matchedCategory] || 7;
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() + reminderDays);
 
             const productData = {
                 barcode: barcode,
                 brand: product.brands || "Unknown",
-                category: product.categories || "Other",
+                category: matchedCategory,
                 imageURL: product.image_url || "",
                 ingredients: product.ingredients_text || "No ingredient data available.",
                 itemName: product.product_name || "Unnamed Product",
@@ -128,7 +154,6 @@ const Scan = () => {
             };
 
             console.log("Fetched product data:", productData);
-
             await saveProductToInventory(barcode, productData);
         } catch (error) {
             console.error("Error fetching product data:", error);

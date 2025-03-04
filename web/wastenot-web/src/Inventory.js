@@ -11,10 +11,10 @@ const Inventory = () => {
   const [editedDate, setEditedDate] = useState("");
   
   const categoryReminderMap = {
-    Dairy: 7,
+    Dairy: 10,
     Vegetables: 5,
     Frozen: 30,
-    Bakery: 3,
+    beverage: 183,
     Meat: 4,
     Other: 7
   };
