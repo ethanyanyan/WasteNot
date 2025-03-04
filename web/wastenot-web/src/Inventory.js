@@ -17,18 +17,23 @@ const Inventory = () => {
     Other: 7
   };
 
-  const [newItem, setNewItem] = useState({
-    category: "Other",
-    itemName: "",
-    lastUpdated: new Date(),
-    productDescription: "",
-    quantity: 1,
-    reminderDate: new Date().toISOString().split('T')[0], // Default to today's date
-    barcode: "",
-    imageURL: "",
-    ingredients: "",
-    nutritionFacts: "",
-    title: ""
+  const [newItem, setNewItem] = useState(() => {
+    const defaultReminderDate = new Date();
+    defaultReminderDate.setDate(defaultReminderDate.getDate() + 7); // Add 7 days from today
+
+    return {
+        category: "Other",
+        itemName: "",
+        lastUpdated: new Date(),
+        productDescription: "",
+        quantity: 1,
+        reminderDate: defaultReminderDate.toISOString().split('T')[0], // Set to 7 days from now
+        barcode: "",
+        imageURL: "",
+        ingredients: "",
+        nutritionFacts: "",
+        title: ""
+    };
   });
 
   useEffect(() => {
@@ -80,11 +85,17 @@ const Inventory = () => {
 
   const handleCategoryChange = (e) => {
     const selectedCategory = e.target.value;
+    const daysToExpire = categoryReminderMap[selectedCategory] || 7; // Default to 7 days if not found
+    const newReminderDate = new Date();
+    newReminderDate.setDate(newReminderDate.getDate() + daysToExpire); // Add the category-based days
+
     setNewItem(prevState => ({
-      ...prevState,
-      category: selectedCategory
+        ...prevState,
+        category: selectedCategory,
+        reminderDate: newReminderDate.toISOString().split('T')[0] // Format to YYYY-MM-DD
     }));
   };
+
 
   const handleAddItem = async () => {
     if (user) {
