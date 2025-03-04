@@ -7,6 +7,8 @@ import "./Inventory.css";
 const Inventory = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [user] = useAuthState(auth);
+  const [editItem, setEditItem] = useState(null);
+  const [editedDate, setEditedDate] = useState("");
   
   const categoryReminderMap = {
     Dairy: 7,
@@ -52,6 +54,29 @@ const Inventory = () => {
 
     fetchInventory();
   }, [user]);
+
+  const updateReminderDate = async (itemId) => {
+    if (user && editedDate) {
+        try {
+            const itemRef = doc(db, `users/${user.uid}/inventory`, itemId);
+            const newTimestamp = Timestamp.fromDate(new Date(editedDate));
+
+            await updateDoc(itemRef, { reminderDate: newTimestamp });
+
+            setInventoryItems(prevItems =>
+                prevItems.map(item =>
+                    item.id === itemId ? { ...item, reminderDate: newTimestamp } : item
+                )
+            );
+
+            setEditItem(null);
+            setEditedDate("");
+        } catch (error) {
+            console.error("Error updating reminder date:", error);
+        }
+    }
+  };
+
 
   const updateQuantity = async (itemId, newQuantity) => {
     if (user && newQuantity >= 0) {
@@ -156,6 +181,24 @@ const Inventory = () => {
                     year: "numeric", month: "2-digit", day: "2-digit"
                 }) : "Unknown"}
               </span>
+              {editItem === item.id ? (
+                  <div>
+                      <input
+                          type="date"
+                          value={editedDate}  // Use value instead of defaultValue
+                          onChange={(e) => setEditedDate(e.target.value)} // Update editedDate correctly
+                      />
+                      <button onClick={() => updateReminderDate(item.id)}>Save</button>
+                      <button onClick={() => setEditItem(null)}>Cancel</button>
+                  </div>
+              ) : (
+                <button className="edit-date-btn" onClick={() => { 
+                  setEditItem(item.id); 
+                  setEditedDate(new Date(item.reminderDate.toDate().getTime()).toISOString().split('T')[0]); 
+                }}>
+                  Edit Date
+                </button>
+              )}
               <div className="quantity-controls">
                 <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
                 <span>{item.quantity}</span>

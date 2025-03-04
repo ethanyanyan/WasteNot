@@ -191,3 +191,21 @@ button:hover {
     padding: 10px;
   }
 }
+
+/* Edit Date Button */
+.edit-date-btn {
+  background-color: #008000; /* Green */
+  color: white;
+  border: none;
+  padding: 6px 6px; /* Reduce padding */
+  border-radius: 6px; /* Match Remove button */
+  font-size: 14px; /* Reduce font size */
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.edit-date-btn:hover {
+  background-color: #006400;
+  transform: scale(1.05);
+}
+
