@@ -145,14 +145,15 @@ const Inventory = () => {
             await setDoc(itemRef, newItemData);
 
             setInventoryItems([...inventoryItems, { id: itemId, ...newItemData }]);
-
+            const defaultReminderDate = new Date();
+            defaultReminderDate.setDate(defaultReminderDate.getDate() + 7); // Add 7 days from today
             setNewItem({
                 category: "Other",
                 itemName: "",
                 lastUpdated: new Date(),
                 productDescription: "",
                 quantity: 1,
-                reminderDate: new Date().toISOString().split('T')[0], // Reset correctly
+                reminderDate: defaultReminderDate.toISOString().split('T')[0], // Reset correctly
                 barcode: "",
                 imageURL: "",
                 ingredients: "",

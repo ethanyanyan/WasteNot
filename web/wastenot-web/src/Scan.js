@@ -135,6 +135,7 @@ const Scan = () => {
             const reminderDays = categoryReminderMap[matchedCategory] || 7;
             const expirationDate = new Date();
             expirationDate.setDate(expirationDate.getDate() + reminderDays);
+            const localExpirationDate = new Date(expirationDate.getTime() - expirationDate.getTimezoneOffset() * 60000);
 
             const productData = {
                 barcode: barcode,
@@ -149,7 +150,7 @@ const Scan = () => {
                     : "No nutrition data available.",
                 productDescription: product.generic_name || "No description available.",
                 quantity: 1,
-                reminderDate: isNaN(expirationDate.getTime()) ? null : Timestamp.fromDate(expirationDate),
+                reminderDate: isNaN(expirationDate.getTime()) ? null : Timestamp.fromDate(localExpirationDate),
                 title: product.product_name || "Unnamed Product",
             };
 
