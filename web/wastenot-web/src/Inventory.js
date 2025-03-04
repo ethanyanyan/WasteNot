@@ -7,6 +7,7 @@ import "./Inventory.css";
 const Inventory = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [user] = useAuthState(auth);
+  
   const categoryReminderMap = {
     Dairy: 7,
     Vegetables: 5,
@@ -95,13 +96,11 @@ const Inventory = () => {
         try {
             const itemId = doc(collection(db, `users/${user.uid}/inventory`)).id;
 
-            // Preserve the user-selected date, and avoid timezone shifts by setting time to noon
-            const reminderDate = new Date(newItem.reminderDate);
-            reminderDate.setHours(12, 0, 0, 0);
-
+            const localDate = new Date(newItem.reminderDate);
+            
             const newItemData = {
                 ...newItem,
-                reminderDate: Timestamp.fromDate(reminderDate), // Store the correct user-selected date
+                reminderDate: Timestamp.fromDate(localDate), // Store the corrected date
                 lastUpdated: new Date(),
                 quantity: newItem.quantity > 0 ? newItem.quantity : 1
             };
@@ -142,10 +141,9 @@ const Inventory = () => {
               <span>{item.itemName} {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}</span>
               <span>
               Expires: {item.reminderDate ? 
-                  (item.reminderDate.toDate ? 
-                   new Date(item.reminderDate.toDate().getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString() 
-                   : new Date(item.reminderDate).toLocaleDateString()) 
-                  : "Unknown"}
+                new Date(item.reminderDate.toDate().getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString(undefined, {
+                    year: "numeric", month: "2-digit", day: "2-digit"
+                }) : "Unknown"}
               </span>
               <div className="quantity-controls">
                 <button onClick={() => updateQuantity(item.id, item.quantity - 1)}>-</button>
@@ -185,12 +183,6 @@ const Inventory = () => {
           onChange={(e) => setNewItem({ ...newItem, quantity: parseInt(e.target.value) || 1 })}
         />
 
-        <input
-          type="date"
-          value={newItem.reminderDate}
-          onChange={(e) => setNewItem({ ...newItem, reminderDate: e.target.value })}
-        />
-
         <select
           value={newItem.category}
           onChange={handleCategoryChange}
@@ -199,6 +191,12 @@ const Inventory = () => {
             <option key={category} value={category}>{category}</option>
           ))}
         </select>
+
+        <input
+          type="date"
+          value={newItem.reminderDate}
+          onChange={(e) => setNewItem({ ...newItem, reminderDate: e.target.value })}
+        />
 
         <button onClick={handleAddItem}>Add Item</button>
       </div>
