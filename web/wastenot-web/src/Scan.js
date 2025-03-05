@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import "./Scan.css";
 import Quagga from "quagga";
 import { db, auth } from "./firebase";
-import { doc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, setDoc, Timestamp } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 const Scan = () => {
@@ -12,6 +12,29 @@ const Scan = () => {
     const scannerRef = useRef(null);
     const hasAlertedRef = useRef(false);
     const [user] = useAuthState(auth);
+
+    const categoryReminderMap = {
+        "Dairy": 10,
+        "Vegetables": 5,
+        "Frozen": 30,
+        "Beverage": 183,
+        "Meat": 4,
+        "Other": 7
+    };
+
+    const predefinedCategories = Object.keys(categoryReminderMap);
+
+    const fuzzyMatchCategory = (inputCategory) => {
+        if (!inputCategory) return "Other";
+
+        const lowerInput = inputCategory.toLowerCase();
+        for (const category of predefinedCategories) {
+            if (lowerInput.includes(category.toLowerCase())) {
+                return category;
+            }
+        }
+        return "Other";
+    };
 
     // Function to start the webcam scanner
     const startWebcamScanner = () => {
@@ -108,12 +131,16 @@ const Scan = () => {
             }
 
             const product = data.product;
-            const expirationDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Default to 7 days from today
+            const matchedCategory = fuzzyMatchCategory(product.categories);
+            const reminderDays = categoryReminderMap[matchedCategory] || 7;
+            const expirationDate = new Date();
+            expirationDate.setDate(expirationDate.getDate() + reminderDays);
+            const localExpirationDate = new Date(expirationDate.getTime() - expirationDate.getTimezoneOffset() * 60000);
 
             const productData = {
                 barcode: barcode,
                 brand: product.brands || "Unknown",
-                category: product.categories || "Other",
+                category: matchedCategory,
                 imageURL: product.image_url || "",
                 ingredients: product.ingredients_text || "No ingredient data available.",
                 itemName: product.product_name || "Unnamed Product",
@@ -123,12 +150,11 @@ const Scan = () => {
                     : "No nutrition data available.",
                 productDescription: product.generic_name || "No description available.",
                 quantity: 1,
-                reminderDate: isNaN(expirationDate.getTime()) ? null : Timestamp.fromDate(expirationDate),
+                reminderDate: isNaN(expirationDate.getTime()) ? null : Timestamp.fromDate(localExpirationDate),
                 title: product.product_name || "Unnamed Product",
             };
 
             console.log("Fetched product data:", productData);
-
             await saveProductToInventory(barcode, productData);
         } catch (error) {
             console.error("Error fetching product data:", error);
@@ -144,8 +170,10 @@ const Scan = () => {
         }
 
         try {
-            const userInventoryRef = doc(db, `users/${user.uid}/inventory/${barcode}`);
-            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${barcode}`);
+            const itemId = productData.id || doc(collection(db, `users/${user.uid}/inventory`)).id;
+
+            const userInventoryRef = doc(db, `users/${user.uid}/inventory/${itemId}`);
+            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${itemId}`);
             console.log("Product data being saved:", productData);
 
             await setDoc(userInventoryRef, productData);

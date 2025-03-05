@@ -1,94 +1,211 @@
+/* General Styling */
 .inventory {
   text-align: center;
   margin: 40px auto;
-  max-width: 600px; /* Increased width */
+  max-width: 700px; /* Slightly increased width for better spacing */
   padding: 20px;
   border-radius: 12px;
 }
 
+/* Header Styling */
 h2 {
   color: #006400; /* Dark green */
   font-weight: bold;
 }
 
+/* Inventory List */
 .inventory-list {
   margin: 20px 0;
 }
 
+/* Inventory Items */
 .inventory-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   border: 2px solid #008000; /* Green border */
-  border-radius: 8px;
-  margin-bottom: 30px;
-  box-shadow: 0px 4px 8px rgba(0, 128, 0, 0.3);
-  width: 100%; /* Adjusted to fit broader layout */
+  border-radius: 10px;
+  margin-bottom: 20px;
+  box-shadow: 0px 4px 10px rgba(0, 128, 0, 0.3);
+  width: 100%;
+  background: #f9f9f9;
 }
 
+/* Quantity Controls */
 .quantity-controls {
   display: flex;
-  align-items: center; /* Ensures vertical alignment */
-  justify-content: center; /* Centers buttons and number */
-  gap: 5px; /* Reduce gap for better spacing */
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .quantity-controls button {
-  width: 35px; /* Slightly increase size for better alignment */
+  width: 35px;
   height: 35px;
-  text-align: center;
   font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%; /* Makes them more visually centered */
+  border-radius: 50%;
+  background: #008000;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.quantity-controls button:hover {
+  background-color: #006400;
 }
 
 .quantity-controls span {
   font-size: 18px;
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 30px; /* Ensure a consistent width */
+  min-width: 35px;
+  text-align: center;
 }
 
+/* Inventory Actions */
 .inventory-actions {
   display: flex;
   justify-content: space-between;
 }
 
+/* Buttons */
 button {
-  background-color: #008000; /* Green */
+  background-color: #008000;
   color: white;
   border: none;
   padding: 10px 15px;
   border-radius: 8px;
   font-size: 16px;
   cursor: pointer;
-  transition: background 0.3s;
+  transition: background 0.3s, transform 0.2s;
   margin-top: 10px;
 }
 
 button:hover {
-  background-color: #006400; /* Darker Green */
+  background-color: #006400;
+  transform: scale(1.05);
 }
 
-.add-btn {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.add-btn:hover {
-  background-color: #388E3C;
-}
-
+/* Remove Button */
 .remove-btn {
   background-color: #FF5733;
-  color: white;
 }
 
 .remove-btn:hover {
   background-color: #C0392B;
 }
+
+/* Add New Item Section */
+.add-item {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0px 4px 10px rgba(0, 128, 0, 0.3);
+  margin-top: 150px;
+  text-align: center;
+  max-width: 90%; /* Adjust width */
+  width: 100%; /* Ensure it adapts */
+  box-sizing: border-box; /* Prevents overflow issues */
+}
+
+/* Add Item Heading */
+.add-item h3 {
+  color: #006400;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+/* Input Fields */
+.add-item input,
+.add-item select {
+  width: calc(100% - 20px); /* Reduce width to prevent overflow */
+  padding: 12px;
+  margin: 10px 0;
+  border: 2px solid #008000;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #fff;
+  display: block;
+  box-sizing: border-box;
+}
+
+.add-item input:focus,
+.add-item select:focus {
+  outline: none;
+  border-color: #006400;
+  box-shadow: 0px 0px 5px rgba(0, 128, 0, 0.5);
+}
+
+/* Add Button */
+.add-item button {
+  width: 100%;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 12px;
+  font-size: 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+}
+
+.add-item button:hover {
+  background-color: #388E3C;
+  transform: scale(1.05);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 600px) {
+  .inventory {
+    max-width: 90%;
+    padding: 15px;
+  }
+
+  .inventory-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .quantity-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .add-item {
+    padding: 15px;
+  }
+
+  .add-item input,
+  .add-item select {
+    font-size: 14px;
+    padding: 10px;
+  }
+
+  .add-item button {
+    font-size: 16px;
+    padding: 10px;
+  }
+}
+
+/* Edit Date Button */
+.edit-date-btn {
+  background-color: #008000; /* Green */
+  color: white;
+  border: none;
+  padding: 6px 6px; /* Reduce padding */
+  border-radius: 6px; /* Match Remove button */
+  font-size: 14px; /* Reduce font size */
+  cursor: pointer;
+  transition: background 0.3s, transform 0.2s;
+}
+
+.edit-date-btn:hover {
+  background-color: #006400;
+  transform: scale(1.05);
+}
+
