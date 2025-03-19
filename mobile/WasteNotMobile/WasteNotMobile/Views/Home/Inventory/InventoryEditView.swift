@@ -82,7 +82,6 @@ struct InventoryEditView: View {
     
     private func saveChanges() {
         isSaving = true
-        // Build an updated item.
         let updatedItem = InventoryItem(
             id: item.id,
             barcode: item.barcode,

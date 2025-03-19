@@ -78,7 +78,6 @@ struct InventoryAddView: View {
     
     private func saveNewItem() {
         isSaving = true
-        // Create a new InventoryItem.
         let newItem = InventoryItem(
             id: "", // Will be set by the service.
             barcode: "", // Manual add has an empty barcode.
@@ -111,4 +110,3 @@ struct InventoryAddView: View {
         }
     }
 }
-

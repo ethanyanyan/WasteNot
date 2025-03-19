@@ -14,14 +14,21 @@ struct InventoryView: View {
     @State private var errorMessage: String?
     @State private var selectedItem: InventoryItem?
     @State private var isAddingNewItem: Bool = false
-    
+
+    // List of shared inventories the user belongs to.
+    @State private var sharedInventories: [SharedInventory] = []
+    // The currently selected shared inventory.
+    @State private var selectedInventory: SharedInventory? = nil
+
+    // State to control presentation of sheets.
+    @State private var isShowingCreateInventory: Bool = false
+    @State private var isShowingEditSharedInventory: Bool = false
+
     @EnvironmentObject var toastManager: ToastManager
-    
-    private let db = Firestore.firestore()
-    
+
     var body: some View {
         NavigationView {
-            ZStack {
+            VStack {
                 List {
                     ForEach(inventoryItems) { item in
                         HStack {
@@ -68,24 +75,8 @@ struct InventoryView: View {
                     }
                     .onDelete(perform: deleteItems)
                 }
-                .navigationTitle("My Inventory")
-                .toolbar {
-                    ToolbarItemGroup(placement: .navigationBarTrailing) {
-                        Button {
-                            fetchInventory()
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        
-                        Button {
-                            isAddingNewItem = true
-                        } label: {
-                            Image(systemName: "plus")
-                        }
-                    }
-                }
                 .onAppear {
-                    fetchInventory()
+                    loadInventories()
                 }
                 .alert(item: Binding(
                     get: { errorMessage == nil ? nil : InventoryError(message: errorMessage!) },
@@ -94,21 +85,35 @@ struct InventoryView: View {
                     Alert(title: Text("Error"), message: Text(error.message), dismissButton: .default(Text("OK")))
                 }
                 .sheet(item: $selectedItem, onDismiss: {
-                    fetchInventory()
+                    fetchItems()
                 }) { item in
                     InventoryEditView(item: item, onSave: {
-                        fetchInventory()
+                        fetchItems()
                     })
                 }
                 .sheet(isPresented: $isAddingNewItem, onDismiss: {
-                    fetchInventory()
+                    fetchItems()
                 }) {
                     InventoryAddView {
-                        fetchInventory()
+                        fetchItems()
                     }
                 }
+                .sheet(isPresented: $isShowingCreateInventory, onDismiss: {
+                    loadInventories()
+                }) {
+                    CreateSharedInventoryView {
+                        loadInventories()
+                    }
+                }
+                .sheet(isPresented: $isShowingEditSharedInventory, onDismiss: {
+                    loadInventories()
+                }) {
+                    EditSharedInventoryView(sharedInventory: selectedInventory ?? SharedInventory(id: "", name: ""), onComplete: {
+                        loadInventories()
+                    })
+                }
                 
-                // Toast overlay
+                // Toast overlay.
                 if toastManager.showToast {
                     VStack {
                         Spacer()
@@ -119,11 +124,56 @@ struct InventoryView: View {
                     .animation(.easeInOut, value: toastManager.showToast)
                 }
             }
+            .toolbar {
+                // Left side: Shared Inventory picker.
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if !sharedInventories.isEmpty {
+                        Menu {
+                            ForEach(sharedInventories, id: \.self) { inventory in
+                                Button(action: {
+                                    self.selectedInventory = inventory
+                                    InventoryService.shared.currentInventoryId = inventory.id
+                                    fetchItems()
+                                }) {
+                                    Text(inventory.name)
+                                }
+                            }
+                        } label: {
+                            Text(selectedInventory?.name ?? "Shared Inventory")
+                                .font(.headline)
+                        }
+                    } else {
+                        Text("Shared Inventory")
+                            .font(.headline)
+                    }
+                }
+                // Right side: Edit, Add, New Inventory, and Refresh.
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack {
+                        Button("Edit") {
+                            isShowingEditSharedInventory = true
+                        }
+                        Button(action: {
+                            isAddingNewItem = true
+                        }) {
+                            Image(systemName: "plus")
+                        }
+                        Button("New Inventory") {
+                            isShowingCreateInventory = true
+                        }
+                        Button(action: {
+                            fetchItems()
+                        }) {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
     
     private func deleteItems(at offsets: IndexSet) {
-        // Sort offsets descending to safely remove items from the array.
         for index in offsets.sorted(by: >) {
             let item = inventoryItems[index]
             InventoryService.shared.deleteInventoryItem(item: item) { result in
@@ -140,56 +190,32 @@ struct InventoryView: View {
         }
     }
     
-    private func fetchInventory() {
-        guard let user = Auth.auth().currentUser else {
-            errorMessage = "User not logged in."
-            return
-        }
-        
-        db.collection("users").document(user.uid).collection("inventory").getDocuments { snapshot, error in
-            if let error = error {
-                errorMessage = error.localizedDescription
-            } else if let snapshot = snapshot {
-                let items = snapshot.documents.compactMap { doc -> InventoryItem? in
-                    let data = doc.data()
-                    guard let barcode = data["barcode"] as? String,
-                          let itemName = data["itemName"] as? String,
-                          let quantity = data["quantity"] as? Int,
-                          let timestamp = data["lastUpdated"] as? Timestamp,
-                          let productDescription = data["productDescription"] as? String,
-                          let imageURL = data["imageURL"] as? String,
-                          let ingredients = data["ingredients"] as? String,
-                          let nutritionFacts = data["nutritionFacts"] as? String,
-                          let brand = data["brand"] as? String,
-                          let title = data["title"] as? String,
-                          let category = data["category"] as? String else {
-                        return nil
-                    }
-                    let reminderTimestamp: Timestamp?
-                    if let ts = data["reminderDate"] as? Timestamp {
-                        reminderTimestamp = ts
-                    } else {
-                        reminderTimestamp = nil
-                    }
-                    
-                    return InventoryItem(
-                        id: doc.documentID,
-                        barcode: barcode,
-                        itemName: itemName,
-                        quantity: quantity,
-                        lastUpdated: timestamp.dateValue(),
-                        productDescription: productDescription,
-                        imageURL: imageURL,
-                        ingredients: ingredients,
-                        nutritionFacts: nutritionFacts,
-                        brand: brand,
-                        title: title,
-                        reminderDate: reminderTimestamp?.dateValue(),
-                        category: category
-                    )
-                }
-                DispatchQueue.main.async {
+    private func fetchItems() {
+        InventoryService.shared.fetchInventoryItems { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let items):
                     self.inventoryItems = items
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
+    private func loadInventories() {
+        InventoryService.shared.fetchSharedInventories { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let inventories):
+                    self.sharedInventories = inventories
+                    if self.selectedInventory == nil, let first = inventories.first {
+                        self.selectedInventory = first
+                        InventoryService.shared.currentInventoryId = first.id
+                        fetchItems()
+                    }
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
                 }
             }
         }
