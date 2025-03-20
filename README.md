@@ -17,8 +17,14 @@ WasteNot is a multi-platform application designed to reduce household food waste
   A GitHub Actions workflow runs scheduled cron jobs that trigger daily email notifications to users using the SendGrid API.
 
 - **Multi-Platform Access:**
+
   - iOS app (Swift/SwiftUI)
   - Responsive web application
+
+- **Shared Inventory & Invitations:**
+  - **Shared Inventory:** Multiple users can collaborate on the same inventory. The owner can add, edit, and manage members.
+  - **Inventory Invitations:** The owner can invite other users by email to join a shared inventory. Invitations are stored in Firestore with the inventory name (to avoid additional queries), and users can accept or decline via a dedicated notifications screen. Duplicate invitations are prevented.
+  - **Real-Time Notifications:** The app shows a notification badge on the bell icon indicating the number of pending invitations.
 
 ## Technology Stack
 
