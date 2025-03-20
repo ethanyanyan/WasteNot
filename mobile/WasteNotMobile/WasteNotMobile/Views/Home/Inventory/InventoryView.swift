@@ -19,10 +19,14 @@ struct InventoryView: View {
     @State private var sharedInventories: [SharedInventory] = []
     // The currently selected shared inventory.
     @State private var selectedInventory: SharedInventory? = nil
+    
+    // New state variable for pending notification count.
+    @State private var notificationCount: Int = 0
 
     // State to control presentation of sheets.
     @State private var isShowingCreateInventory: Bool = false
     @State private var isShowingEditSharedInventory: Bool = false
+    @State private var isShowingNotifications: Bool = false
 
     @EnvironmentObject var toastManager: ToastManager
 
@@ -77,6 +81,12 @@ struct InventoryView: View {
                 }
                 .onAppear {
                     loadInventories()
+                    fetchNotificationCount()
+                    // Observe invitation acceptance notifications.
+                    NotificationCenter.default.addObserver(forName: NSNotification.Name("InvitationAccepted"), object: nil, queue: .main) { _ in
+                        loadInventories()
+                        fetchItems()
+                    }
                 }
                 .alert(item: Binding(
                     get: { errorMessage == nil ? nil : InventoryError(message: errorMessage!) },
@@ -112,6 +122,11 @@ struct InventoryView: View {
                         loadInventories()
                     })
                 }
+                .sheet(isPresented: $isShowingNotifications, onDismiss: {
+                    fetchNotificationCount()
+                }) {
+                    NotificationsView()
+                }
                 
                 // Toast overlay.
                 if toastManager.showToast {
@@ -125,7 +140,7 @@ struct InventoryView: View {
                 }
             }
             .toolbar {
-                // Left side: Shared Inventory picker.
+                // Leading: Shared Inventory Picker.
                 ToolbarItem(placement: .navigationBarLeading) {
                     if !sharedInventories.isEmpty {
                         Menu {
@@ -139,33 +154,56 @@ struct InventoryView: View {
                                 }
                             }
                         } label: {
-                            Text(selectedInventory?.name ?? "Shared Inventory")
-                                .font(.headline)
+                            HStack {
+                                Image(systemName: "folder")
+                                Text(selectedInventory?.name ?? "Shared Inventory")
+                                    .font(.headline)
+                            }
                         }
                     } else {
                         Text("Shared Inventory")
                             .font(.headline)
                     }
                 }
-                // Right side: Edit, Add, New Inventory, and Refresh.
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        Button("Edit") {
-                            isShowingEditSharedInventory = true
+                // Trailing: Add New Item button, notifications button (with badge), and a grouped Manage menu.
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        isAddingNewItem = true
+                    }) {
+                        Image(systemName: "plus")
+                    }
+                    
+                    Button(action: {
+                        isShowingNotifications = true
+                    }) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: notificationCount > 0 ? "bell.fill" : "bell")
+                            if notificationCount > 0 {
+                                Text("\(notificationCount)")
+                                    .font(.caption2)
+                                    .foregroundColor(.white)
+                                    .padding(4)
+                                    .background(Circle().fill(Color.red))
+                                    .offset(x: 10, y: -10)
+                            }
                         }
-                        Button(action: {
-                            isAddingNewItem = true
-                        }) {
-                            Image(systemName: "plus")
+                    }
+                    
+                    Menu {
+                        Button("Edit Inventory") {
+                            isShowingEditSharedInventory = true
                         }
                         Button("New Inventory") {
                             isShowingCreateInventory = true
                         }
-                        Button(action: {
+                        Button("Refresh") {
                             fetchItems()
-                        }) {
-                            Image(systemName: "arrow.clockwise")
+                            loadInventories()
+                            fetchNotificationCount()
                         }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .imageScale(.large)
                     }
                 }
             }
@@ -214,17 +252,27 @@ struct InventoryView: View {
                         InventoryService.shared.currentInventoryId = first.id
                         fetchItems()
                     }
+                    print("Loaded inventories: \(inventories.map { $0.name })")
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
                 }
             }
         }
     }
-}
-
-private struct InventoryError: Identifiable {
-    var id: String { message }
-    let message: String
+    
+    private func fetchNotificationCount() {
+        NotificationsService.shared.fetchPendingInvitations { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let invitations):
+                    self.notificationCount = invitations.count
+                    print("Notification count: \(self.notificationCount)")
+                case .failure(let error):
+                    print("Error fetching notifications: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
 }
 
 private let itemDateFormatter: DateFormatter = {

@@ -267,4 +267,68 @@ class InventoryService {
              }
         }
     }
+    
+    // MARK: - Shared Inventory Members Management
+
+    /// Fetches member UIDs of a shared inventory.
+    func fetchSharedInventoryMembers(inventoryId: String, completion: @escaping (Result<[String], Error>) -> Void) {
+        db.collection("inventories").document(inventoryId).getDocument { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else if let snapshot = snapshot, snapshot.exists {
+                let data = snapshot.data() ?? [:]
+                if let members = data["members"] as? [String: String] {
+                    let uids = Array(members.keys)
+                    completion(.success(uids))
+                } else {
+                    completion(.success([]))
+                }
+            } else {
+                completion(.failure(NSError(domain: "InventoryService", code: -5, userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
+            }
+        }
+    }
+
+    /// Adds a member to a shared inventory using their email address.
+    /// It looks up the user document in the "users" collection by email, then updates the inventory’s "members" map and "membersArray".
+    func addMemberToSharedInventory(inventoryId: String, memberEmail: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        db.collection("users")
+          .whereField("email", isEqualTo: memberEmail)
+          .getDocuments { snapshot, error in
+              if let error = error {
+                  completion(.failure(error))
+                  return
+              }
+              guard let doc = snapshot?.documents.first else {
+                  completion(.failure(NSError(domain: "InventoryService", code: -4,
+                                              userInfo: [NSLocalizedDescriptionKey: "No user found with that email."])))
+                  return
+              }
+              let memberUid = doc.documentID
+              let updateData: [String: Any] = [
+                  "members.\(memberUid)": "member",
+                  "membersArray": FieldValue.arrayUnion([memberUid])
+              ]
+              self.db.collection("inventories").document(inventoryId).updateData(updateData) { error in
+                  if let error = error {
+                      completion(.failure(error))
+                  } else {
+                      completion(.success(()))
+                  }
+              }
+          }
+    }
+    
+    func fetchInventoryName(for inventoryId: String, completion: @escaping (Result<String, Error>) -> Void) {
+        db.collection("inventories").document(inventoryId).getDocument { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else if let snapshot = snapshot, snapshot.exists, let data = snapshot.data(), let name = data["name"] as? String {
+                completion(.success(name))
+            } else {
+                completion(.failure(NSError(domain: "InventoryService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
+            }
+        }
+    }
+
 }
