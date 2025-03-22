@@ -23,9 +23,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     return true
   }
   
-  // Called when APNs has assigned a device token.
   func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    // Pass the APNs token to Firebase Messaging.
     Messaging.messaging().apnsToken = deviceToken
     print("APNs device token set: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
   }
@@ -33,23 +31,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
   func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
     print("Failed to register for remote notifications: \(error.localizedDescription)")
   }
-  
-  // Optional: Implement UNUserNotificationCenterDelegate methods if needed.
 }
 
 @main
 struct WasteNotApp: App {
-  // Register AppDelegate for Firebase and notifications.
   @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
   init() {
-      // Request notification permissions at app launch.
       NotificationsService.shared.requestNotificationPermissions()
   }
   
   var body: some Scene {
     WindowGroup {
       AppView()
+         .environmentObject(ToastManager())
     }
   }
 }

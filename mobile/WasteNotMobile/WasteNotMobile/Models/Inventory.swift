@@ -1,5 +1,5 @@
 //
-//  InventoryItem.swift
+//  Models/Inventory.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 26/2/25.
@@ -22,4 +22,19 @@ struct InventoryItem: Identifiable {
     var title: String
     var reminderDate: Date?
     var category: String
+}
+
+struct InventoryInvitation: Identifiable {
+    var id: String
+    var fromUser: String
+    var toUser: String
+    var inventoryId: String
+    var inventoryName: String
+    var status: String
+    var createdAt: Date
+}
+
+struct InventoryError: Identifiable, Error {
+    var id: String { message }
+    var message: String
 }

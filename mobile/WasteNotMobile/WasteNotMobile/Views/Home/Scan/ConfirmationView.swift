@@ -33,9 +33,6 @@ struct ConfirmationView: View {
     @State private var reminderDate: Date = Date()
     @State private var reminderService = ReminderDateService()
     
-    // Firestore reference
-    private let db = Firestore.firestore()
-    
     var body: some View {
         Form {
             Section(header: Text("Scanned Details")) {
@@ -160,7 +157,6 @@ struct ConfirmationView: View {
                     if let product = jsonResponse["product"] as? [String: Any] {
                         let name = product["product_name"] as? String ?? ""
                         let brand = product["brands"] as? String ?? ""
-                        // Combine brand and name as before.
                         let defaultName = brand.isEmpty ? name : (!name.isEmpty ? "\(brand) \(name)" : brand)
                         let genericName = product["generic_name"] as? String ?? ""
                         let ingredientsText = product["ingredients_text"] as? String ?? ""
@@ -178,14 +174,12 @@ struct ConfirmationView: View {
                             self.productTitle = name
                             self.productDescription = genericName
                             self.ingredients = ingredientsText
-                            // Nutrition facts are not directly provided; leave as empty or parse further if needed.
                             self.nutritionFacts = ""
                             self.productImageURL = imageUrl
                             self.category = newCategory
                             self.reminderDate = self.reminderService.defaultReminderDate(for: newCategory)
                         }
                     } else {
-                        // Fallback if "product" field isn't found.
                         DispatchQueue.main.async {
                             self.itemName = "Item: \(barcode)"
                         }
