@@ -209,3 +209,7 @@ button:hover {
   transform: scale(1.05);
 }
 
+.shared-item {
+  background-color: #e0ffe0;
+  border: 2px solid #32cd32;
+}

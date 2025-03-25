@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp, getDoc, query, where } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import "./Inventory.css";
 
 const Inventory = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
+  const [sharedInventoryItems, setSharedInventoryItems] = useState([]);
   const [user] = useAuthState(auth);
   const [editItem, setEditItem] = useState(null);
   const [editedDate, setEditedDate] = useState("");
@@ -39,20 +40,36 @@ const Inventory = () => {
   });
 
   useEffect(() => {
-    const fetchInventory = async () => {
+    const fetchInventories = async () => {
       if (user) {
         try {
-          const inventoryRef = collection(db, `users/${user.uid}/inventory`);
-          const inventorySnapshot = await getDocs(inventoryRef);
-          const items = inventorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setInventoryItems(items);
+          // Fetch personal inventory
+          const personalInventoryRef = collection(db, `users/${user.uid}/inventory`);
+          const personalInventorySnapshot = await getDocs(personalInventoryRef);
+          const personalItems = personalInventorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Fetch shared inventory
+          const sharedInventoryRef = collection(db, "inventories");
+          const sharedQuery = query(sharedInventoryRef, where(`members.${user.uid}`, "==", "member"));
+          const sharedInventorySnapshot = await getDocs(sharedQuery);
+          let sharedItems = [];
+          for (const sharedDoc of sharedInventorySnapshot.docs) {
+            const sharedUserRef = collection(db, `users/${sharedDoc.id}/inventory`);
+            const sharedUserSnapshot = await getDocs(sharedUserRef);
+            const sharedUserItems = sharedUserSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), shared: true }));
+            sharedItems = [...sharedItems, ...sharedUserItems];
+          }
+
+          // Merge both inventories
+          const mergedItems = [...personalItems, ...sharedItems];
+          setInventoryItems(mergedItems);
         } catch (error) {
           console.error("Error fetching inventory:", error);
         }
       }
     };
 
-    fetchInventory();
+    fetchInventories();
   }, [user]);
 
   const updateReminderDate = async (itemId) => {
@@ -174,8 +191,14 @@ const Inventory = () => {
       <div className="inventory-list">
         {inventoryItems.length > 0 ? (
           inventoryItems.map((item) => (
-            <div key={item.id} className="inventory-item">
-              <span>{item.itemName} {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}</span>
+            <div key={item.id} className={`inventory-item ${item.shared ? "shared-item" : ""}`}>
+              <span>
+                {item.itemName} 
+                {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}
+                {item.shared && "(Shared)"}
+              </span>
+              {/* <span>{item.itemName} {item.shared && "(Shared)"}</span> */}
+              {/* <span>{item.itemName} {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}</span> */}
               <span>
               Expires: {item.reminderDate ? 
                 new Date(item.reminderDate.toDate().getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString(undefined, {
