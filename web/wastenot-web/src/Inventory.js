@@ -71,9 +71,10 @@ const Inventory = () => {
               console.log("Shared Inventory Items from User:", sharedUserItems);
               sharedItems = [...sharedItems, ...sharedUserItems];
           }
-
+          
+          const filteredSharedItems = sharedItems.filter(item => !personalItems.some(personalItem => personalItem.id === item.id));
           // Merge both inventories
-          const mergedItems = [...personalItems, ...sharedItems];
+          const mergedItems = [...personalItems, ...filteredSharedItems];
           console.log("Merged Inventory Items:", mergedItems);
           setInventoryItems(mergedItems);
         } catch (error) {
