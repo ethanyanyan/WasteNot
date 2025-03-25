@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp, getDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import "./Inventory.css";
 
