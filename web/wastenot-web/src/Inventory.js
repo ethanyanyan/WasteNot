@@ -43,25 +43,38 @@ const Inventory = () => {
     const fetchInventories = async () => {
       if (user) {
         try {
+          console.log("User ID:", user.uid);
           // Fetch personal inventory
           const personalInventoryRef = collection(db, `users/${user.uid}/inventory`);
           const personalInventorySnapshot = await getDocs(personalInventoryRef);
           const personalItems = personalInventorySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          console.log("Personal Inventory Items:", personalItems);
           
           // Fetch shared inventory
-          const sharedInventoryRef = collection(db, "inventories");
-          const sharedQuery = query(sharedInventoryRef, where(`members.${user.uid}`, "==", "member"));
+          const sharedInventoryRef = collection(db, "sharedInventories");
+          const sharedQuery = query(sharedInventoryRef, where(`members.${user.uid}`, "in", ["owner", "member"]));
           const sharedInventorySnapshot = await getDocs(sharedQuery);
+          console.log("Shared Inventory Query Snapshot:", sharedInventorySnapshot);
+
           let sharedItems = [];
           for (const sharedDoc of sharedInventorySnapshot.docs) {
-            const sharedUserRef = collection(db, `users/${sharedDoc.id}/inventory`);
-            const sharedUserSnapshot = await getDocs(sharedUserRef);
-            const sharedUserItems = sharedUserSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), shared: true }));
-            sharedItems = [...sharedItems, ...sharedUserItems];
+              const sharedInventoryId = sharedDoc.id;
+              console.log("Shared Inventory ID:", sharedInventoryId);
+              const sharedUserInventoryRef = collection(db, `users/${sharedInventoryId}/inventory`);
+              const sharedUserInventorySnapshot = await getDocs(sharedUserInventoryRef);
+              console.log("Shared User Inventory Snapshot:", sharedUserInventorySnapshot.docs);
+              const sharedUserItems = sharedUserInventorySnapshot.docs.map(doc => ({
+                  id: doc.id,
+                  ...doc.data(),
+                  shared: true
+              }));
+              console.log("Shared Inventory Items from User:", sharedUserItems);
+              sharedItems = [...sharedItems, ...sharedUserItems];
           }
 
           // Merge both inventories
           const mergedItems = [...personalItems, ...sharedItems];
+          console.log("Merged Inventory Items:", mergedItems);
           setInventoryItems(mergedItems);
         } catch (error) {
           console.error("Error fetching inventory:", error);
