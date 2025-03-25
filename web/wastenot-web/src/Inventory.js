@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { db, auth } from "./firebase";
-import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp, getDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, Timestamp, query, where } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 import "./Inventory.css";
 
 const Inventory = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
-  const [sharedInventoryItems, setSharedInventoryItems] = useState([]);
   const [user] = useAuthState(auth);
   const [editItem, setEditItem] = useState(null);
   const [editedDate, setEditedDate] = useState("");
@@ -58,18 +57,22 @@ const Inventory = () => {
 
           let sharedItems = [];
           for (const sharedDoc of sharedInventorySnapshot.docs) {
-              const sharedInventoryId = sharedDoc.id;
-              console.log("Shared Inventory ID:", sharedInventoryId);
-              const sharedUserInventoryRef = collection(db, `users/${sharedInventoryId}/inventory`);
-              const sharedUserInventorySnapshot = await getDocs(sharedUserInventoryRef);
-              console.log("Shared User Inventory Snapshot:", sharedUserInventorySnapshot.docs);
-              const sharedUserItems = sharedUserInventorySnapshot.docs.map(doc => ({
-                  id: doc.id,
-                  ...doc.data(),
-                  shared: true
-              }));
-              console.log("Shared Inventory Items from User:", sharedUserItems);
-              sharedItems = [...sharedItems, ...sharedUserItems];
+            const sharedInventoryData = sharedDoc.data();
+            const membersArray = sharedInventoryData.membersArray || [];
+
+            for (const memberId of membersArray) {
+                // Skip the current user's ID to prevent duplication
+                if (memberId === user.uid) continue;
+
+                const memberInventoryRef = collection(db, `users/${memberId}/inventory`);
+                const memberInventorySnapshot = await getDocs(memberInventoryRef);
+                const memberItems = memberInventorySnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    shared: true
+                }));
+                sharedItems = [...sharedItems, ...memberItems];
+            }
           }
           
           const filteredSharedItems = sharedItems.filter(item => !personalItems.some(personalItem => personalItem.id === item.id));

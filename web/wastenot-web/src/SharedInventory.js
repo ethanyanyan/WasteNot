@@ -73,7 +73,7 @@ const SharedInventory = () => {
 
     return (
         <div className="shared-inventory">
-            <h2>Shared Inventory</h2>
+            <h2>Add new Member for Shared Inventory</h2>
             <input 
                 type="email"
                 placeholder="Member email"
