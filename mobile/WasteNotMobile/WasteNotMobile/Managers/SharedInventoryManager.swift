@@ -42,8 +42,9 @@ class SharedInventoryManager: ObservableObject {
                     }
                     DispatchQueue.main.async {
                         self.sharedInventories = inventories
-                        if self.selectedInventory == nil, let firstInventory = inventories.first {
-                            self.selectInventory(firstInventory)
+                        if !inventories.isEmpty {
+                            // Always set the selected inventory to the first in the list.
+                            self.selectInventory(inventories.first!)
                         }
                     }
                 }

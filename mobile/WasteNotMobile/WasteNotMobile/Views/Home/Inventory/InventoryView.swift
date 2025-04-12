@@ -15,7 +15,7 @@ struct InventoryView: View {
     @State private var selectedItem: InventoryItem?
     @State private var isAddingNewItem: Bool = false
 
-    // Removed local shared inventories state; using SharedInventoryManager instead.
+    // Use the SharedInventoryManager for shared inventories.
     @ObservedObject private var sharedInventoryManager = SharedInventoryManager.shared
 
     // New state variable for pending notification count.
@@ -28,7 +28,7 @@ struct InventoryView: View {
 
     @EnvironmentObject var toastManager: ToastManager
 
-    // New dictionary to cache fetched usernames for uids.
+    // Cache fetched usernames for uids.
     @State private var userNames: [String: String] = [:]
 
     var body: some View {
@@ -81,13 +81,19 @@ struct InventoryView: View {
                     .onDelete(perform: deleteItems)
                 }
                 .onAppear {
-                    // Refresh shared inventories using the manager.
+                    // Refresh shared inventories.
                     sharedInventoryManager.refreshInventories()
                     fetchNotificationCount()
-                    fetchItems()
+                    // Do not call fetchItems() immediately.
                     // Observe invitation acceptance notifications.
                     NotificationCenter.default.addObserver(forName: NSNotification.Name("InvitationAccepted"), object: nil, queue: .main) { _ in
                         sharedInventoryManager.refreshInventories()
+                        fetchItems()
+                    }
+                }
+                // Call fetchItems() when a shared inventory is selected.
+                .onReceive(sharedInventoryManager.$selectedInventory) { selected in
+                    if selected != nil {
                         fetchItems()
                     }
                 }
@@ -231,6 +237,16 @@ struct InventoryView: View {
     }
     
     private func fetchItems() {
+        // Check that a shared inventory is selected
+        guard let _ = InventoryService.shared.currentInventoryId else {
+            print("No shared inventory selected. Will retry fetching items after delay.")
+            // Delay and then try again
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                fetchItems()
+            }
+            return
+        }
+        
         InventoryService.shared.fetchInventoryItems { result in
             DispatchQueue.main.async {
                 switch result {
