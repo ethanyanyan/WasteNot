@@ -15,11 +15,9 @@ struct InventoryView: View {
     @State private var selectedItem: InventoryItem?
     @State private var isAddingNewItem: Bool = false
 
-    // List of shared inventories the user belongs to.
-    @State private var sharedInventories: [SharedInventory] = []
-    // The currently selected shared inventory.
-    @State private var selectedInventory: SharedInventory? = nil
-    
+    // Removed local shared inventories state; using SharedInventoryManager instead.
+    @ObservedObject private var sharedInventoryManager = SharedInventoryManager.shared
+
     // New state variable for pending notification count.
     @State private var notificationCount: Int = 0
 
@@ -29,6 +27,9 @@ struct InventoryView: View {
     @State private var isShowingNotifications: Bool = false
 
     @EnvironmentObject var toastManager: ToastManager
+
+    // New dictionary to cache fetched usernames for uids.
+    @State private var userNames: [String: String] = [:]
 
     var body: some View {
         NavigationView {
@@ -67,7 +68,7 @@ struct InventoryView: View {
                                         .font(.caption)
                                         .foregroundColor(.blue)
                                 }
-                                Text("Last Updated: \(item.lastUpdated, formatter: itemDateFormatter)")
+                                Text("Last Updated: \(item.lastUpdated, formatter: itemDateFormatter) (by \(userNames[item.lastUpdatedBy] ?? "Unknown"))")
                                     .font(.caption)
                                     .foregroundColor(.gray)
                             }
@@ -80,11 +81,13 @@ struct InventoryView: View {
                     .onDelete(perform: deleteItems)
                 }
                 .onAppear {
-                    loadInventories()
+                    // Refresh shared inventories using the manager.
+                    sharedInventoryManager.refreshInventories()
                     fetchNotificationCount()
+                    fetchItems()
                     // Observe invitation acceptance notifications.
                     NotificationCenter.default.addObserver(forName: NSNotification.Name("InvitationAccepted"), object: nil, queue: .main) { _ in
-                        loadInventories()
+                        sharedInventoryManager.refreshInventories()
                         fetchItems()
                     }
                 }
@@ -109,17 +112,17 @@ struct InventoryView: View {
                     }
                 }
                 .sheet(isPresented: $isShowingCreateInventory, onDismiss: {
-                    loadInventories()
+                    sharedInventoryManager.refreshInventories()
                 }) {
                     CreateSharedInventoryView {
-                        loadInventories()
+                        sharedInventoryManager.refreshInventories()
                     }
                 }
                 .sheet(isPresented: $isShowingEditSharedInventory, onDismiss: {
-                    loadInventories()
+                    sharedInventoryManager.refreshInventories()
                 }) {
-                    EditSharedInventoryView(sharedInventory: selectedInventory ?? SharedInventory(id: "", name: ""), onComplete: {
-                        loadInventories()
+                    EditSharedInventoryView(sharedInventory: sharedInventoryManager.selectedInventory ?? SharedInventory(id: "", name: ""), onComplete: {
+                        sharedInventoryManager.refreshInventories()
                     })
                 }
                 .sheet(isPresented: $isShowingNotifications, onDismiss: {
@@ -140,14 +143,13 @@ struct InventoryView: View {
                 }
             }
             .toolbar {
-                // Leading: Shared Inventory Picker.
+                // Leading: Shared Inventory Picker using SharedInventoryManager.
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if !sharedInventories.isEmpty {
+                    if !sharedInventoryManager.sharedInventories.isEmpty {
                         Menu {
-                            ForEach(sharedInventories, id: \.self) { inventory in
+                            ForEach(sharedInventoryManager.sharedInventories, id: \.self) { inventory in
                                 Button(action: {
-                                    self.selectedInventory = inventory
-                                    InventoryService.shared.currentInventoryId = inventory.id
+                                    sharedInventoryManager.selectInventory(inventory)
                                     fetchItems()
                                 }) {
                                     Text(inventory.name)
@@ -156,7 +158,7 @@ struct InventoryView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "folder")
-                                Text(selectedInventory?.name ?? "Shared Inventory")
+                                Text(sharedInventoryManager.selectedInventory?.name ?? "Shared Inventory")
                                     .font(.headline)
                             }
                         }
@@ -198,7 +200,7 @@ struct InventoryView: View {
                         }
                         Button("Refresh") {
                             fetchItems()
-                            loadInventories()
+                            sharedInventoryManager.refreshInventories()
                             fetchNotificationCount()
                         }
                     } label: {
@@ -234,25 +236,22 @@ struct InventoryView: View {
                 switch result {
                 case .success(let items):
                     self.inventoryItems = items
-                case .failure(let error):
-                    self.errorMessage = error.localizedDescription
-                }
-            }
-        }
-    }
-    
-    private func loadInventories() {
-        InventoryService.shared.fetchSharedInventories { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let inventories):
-                    self.sharedInventories = inventories
-                    if self.selectedInventory == nil, let first = inventories.first {
-                        self.selectedInventory = first
-                        InventoryService.shared.currentInventoryId = first.id
-                        fetchItems()
+                    // For each distinct lastUpdatedBy uid, fetch the username if not already cached.
+                    let uids = Set(items.map { $0.lastUpdatedBy })
+                    for uid in uids {
+                        if self.userNames[uid] == nil {
+                            UserService().fetchUserProfile(uid: uid) { result in
+                                DispatchQueue.main.async {
+                                    switch result {
+                                    case .success(let profile):
+                                        self.userNames[uid] = profile.username
+                                    case .failure(_):
+                                        self.userNames[uid] = "Unknown"
+                                    }
+                                }
+                            }
+                        }
                     }
-                    print("Loaded inventories: \(inventories.map { $0.name })")
                 case .failure(let error):
                     self.errorMessage = error.localizedDescription
                 }

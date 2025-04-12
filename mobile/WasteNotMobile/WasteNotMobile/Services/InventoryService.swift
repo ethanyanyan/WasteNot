@@ -29,7 +29,7 @@ class InventoryService {
     /// Updates an existing inventory item and schedules a reminder.
     func updateInventoryItem(updatedItem: InventoryItem,
                              completion: @escaping (Result<Void, Error>) -> Void) {
-        guard Auth.auth().currentUser != nil else {
+        guard let currentUser = Auth.auth().currentUser else {
             completion(.failure(NSError(domain: "InventoryService", code: -1,
                                         userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
             return
@@ -45,6 +45,7 @@ class InventoryService {
             "quantity": updatedItem.quantity,
             "productDescription": updatedItem.productDescription,
             "lastUpdated": FieldValue.serverTimestamp(),
+            "lastUpdatedBy": currentUser.uid,
             "reminderDate": updatedItem.reminderDate ?? NSNull()
         ]
         
@@ -66,7 +67,7 @@ class InventoryService {
     /// Adds a new inventory item and schedules a reminder.
     func addInventoryItem(newItem: InventoryItem,
                           completion: @escaping (Result<Void, Error>) -> Void) {
-        guard Auth.auth().currentUser != nil else {
+        guard let currentUser = Auth.auth().currentUser else {
             completion(.failure(NSError(domain: "InventoryService", code: -1,
                                         userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
             return
@@ -89,7 +90,9 @@ class InventoryService {
             "brand": newItem.brand,
             "title": newItem.title,
             "category": newItem.category,
-            "reminderDate": newItem.reminderDate != nil ? Timestamp(date: newItem.reminderDate!) : NSNull()
+            "reminderDate": newItem.reminderDate != nil ? Timestamp(date: newItem.reminderDate!) : NSNull(),
+            "createdBy": currentUser.uid,
+            "lastUpdatedBy": currentUser.uid
         ]
         
         var ref: DocumentReference? = nil
@@ -190,7 +193,9 @@ class InventoryService {
                             brand: brand,
                             title: title,
                             reminderDate: reminderTimestamp?.dateValue(),
-                            category: category
+                            category: category,
+                            createdBy: data["createdBy"] as? String ?? "Unknown",
+                            lastUpdatedBy: data["lastUpdatedBy"] as? String ?? "Unknown"
                         )
                     }
                     completion(.success(items))

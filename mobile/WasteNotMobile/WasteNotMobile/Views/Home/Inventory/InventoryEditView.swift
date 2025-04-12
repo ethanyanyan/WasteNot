@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct InventoryEditView: View {
     var item: InventoryItem
@@ -20,6 +21,10 @@ struct InventoryEditView: View {
     @State private var reminderDate: Date
     @State private var errorMessage: String?
     @State private var isSaving: Bool = false
+    
+    // State variables to hold fetched usernames.
+    @State private var createdByName: String = "Loading..."
+    @State private var updatedByName: String = "Loading..."
     
     init(item: InventoryItem, onSave: @escaping () -> Void) {
         self.item = item
@@ -52,6 +57,21 @@ struct InventoryEditView: View {
                 Section(header: Text("Reminder")) {
                     DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                 }
+                                
+                Section(header: Text("Item History")) {
+                    HStack {
+                        Text("Created by:")
+                        Spacer()
+                        Text("\(createdByName)")
+                            .foregroundColor(.secondary)
+                    }
+                    HStack {
+                        Text("Last updated by:")
+                        Spacer()
+                        Text("\(updatedByName)")
+                            .foregroundColor(.secondary)
+                    }
+                }
                 
                 if let errorMessage = errorMessage {
                     Section {
@@ -77,11 +97,45 @@ struct InventoryEditView: View {
                     }
                 }
             }
+            .onAppear {
+                fetchUserNames()
+            }
+        }
+    }
+    
+    private func fetchUserNames() {
+        // Fetch the creator's username using their UID.
+        UserService().fetchUserProfile(uid: item.createdBy) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let profile):
+                    self.createdByName = profile.username
+                case .failure(_):
+                    self.createdByName = "Unknown"
+                }
+            }
+        }
+        // Fetch the last updater's username using their UID.
+        UserService().fetchUserProfile(uid: item.lastUpdatedBy) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let profile):
+                    self.updatedByName = profile.username
+                case .failure(_):
+                    self.updatedByName = "Unknown"
+                }
+            }
         }
     }
     
     private func saveChanges() {
         isSaving = true
+        
+        // Use the global notification lead time to calculate the effective reminder time.
+        let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
+        let leadTimeInSeconds = Int(globalLeadTime * 3600)
+        let effectiveReminderDate = Calendar.current.date(byAdding: .second, value: -leadTimeInSeconds, to: reminderDate) ?? reminderDate
+        
         let updatedItem = InventoryItem(
             id: item.id,
             barcode: item.barcode,
@@ -94,8 +148,11 @@ struct InventoryEditView: View {
             nutritionFacts: item.nutritionFacts,
             brand: item.brand,
             title: item.title,
-            reminderDate: reminderDate,
-            category: item.category
+            // Use the effective reminder date
+            reminderDate: effectiveReminderDate,
+            category: item.category,
+            createdBy: item.createdBy,
+            lastUpdatedBy: Auth.auth().currentUser?.uid ?? item.lastUpdatedBy
         )
         
         InventoryService.shared.updateInventoryItem(updatedItem: updatedItem) { result in

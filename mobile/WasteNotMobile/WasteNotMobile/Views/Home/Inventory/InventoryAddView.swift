@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct InventoryAddView: View {
     var onSave: () -> Void
@@ -49,6 +50,8 @@ struct InventoryAddView: View {
                     DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
                 }
                 
+                // Removed notification settings section; effective time is calculated from the global setting.
+                
                 if let errorMessage = errorMessage {
                     Section {
                         Text(errorMessage)
@@ -78,6 +81,15 @@ struct InventoryAddView: View {
     
     private func saveNewItem() {
         isSaving = true
+        
+        // Retrieve global notification lead time
+        let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
+        let leadTimeInSeconds = Int(globalLeadTime * 3600)
+        let effectiveReminderDate = Calendar.current.date(byAdding: .second, value: -leadTimeInSeconds, to: reminderDate) ?? reminderDate
+        
+        // Retrieve current user uid (or "Unknown" if nil)
+        let currentUid = Auth.auth().currentUser?.uid ?? "Unknown"
+        
         let newItem = InventoryItem(
             id: "", // Will be set by the service.
             barcode: "", // Manual add has an empty barcode.
@@ -90,8 +102,11 @@ struct InventoryAddView: View {
             nutritionFacts: "",
             brand: "",
             title: "",
-            reminderDate: reminderDate,
-            category: category
+            // Use the effective reminder date
+            reminderDate: effectiveReminderDate,
+            category: category,
+            createdBy: currentUid,
+            lastUpdatedBy: currentUid
         )
         
         InventoryService.shared.addInventoryItem(newItem: newItem) { result in

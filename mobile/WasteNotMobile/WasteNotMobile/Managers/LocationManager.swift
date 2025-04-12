@@ -1,5 +1,5 @@
 //
-//  App/Managers/LocationManager.swift
+//  Managers/LocationManager.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 21/1/25.

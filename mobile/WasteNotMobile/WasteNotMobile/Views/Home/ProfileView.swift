@@ -28,6 +28,9 @@ struct ProfileView: View {
     // For showing alerts
     @State private var showingLocationAlert = false
     
+    // Notification Lead Time (in hours) as a global default
+    @State private var defaultNotificationLeadTime: Double = 24
+    
     // Observe custom LocationManager
     @StateObject private var locationManager = LocationManager()
     
@@ -39,7 +42,7 @@ struct ProfileView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 16) {
+            VStack(spacing: 14) {
                 
                 // Avatar with pick button
                 if let avatarURL = avatarURL {
@@ -87,7 +90,7 @@ struct ProfileView: View {
                 }
                 
                 // User info fields
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 6) {
                     Text("Email (read-only)")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -108,13 +111,13 @@ struct ProfileView: View {
                     Button("Use Current Location") {
                         locationManager.requestPermission()
                     }
-                    .padding(.top, 8)
                     
-                    // Optional: Show location status
-                    if let status = locationManager.status {
-                        Text("Location status: \(statusString(for: status))")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                    // Global Notification Lead Time Setting
+                    Text("Default Notification Lead Time (hours)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Stepper(value: $defaultNotificationLeadTime, in: 0...168, step: 1) {
+                        Text("\(Int(defaultNotificationLeadTime)) hours before")
                     }
                 }
                 .padding()
@@ -202,6 +205,7 @@ struct ProfileView: View {
                 let data = document.data() ?? [:]
                 self.username = data["username"] as? String ?? ""
                 self.location = data["location"] as? String ?? ""
+                self.defaultNotificationLeadTime = data["notificationLeadTime"] as? Double ?? 24.0
                 
                 if let avatarString = data["avatarURL"] as? String,
                    let url = URL(string: avatarString) {
@@ -245,7 +249,8 @@ struct ProfileView: View {
         let userData: [String: Any] = [
             "username": username,
             "location": location,
-            "email": email
+            "email": email,
+            "notificationLeadTime": defaultNotificationLeadTime
             // "avatarURL" is set in uploadAvatar
         ]
         

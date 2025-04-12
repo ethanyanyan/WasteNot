@@ -12,7 +12,7 @@ class UserService {
     private let db = Firestore.firestore()
 
     func fetchUserProfile(uid: String, completion: @escaping (Result<UserProfile, Error>) -> Void) {
-         db.collection("users").document(uid).getDocument { snapshot, error in
+        db.collection("users").document(uid).getDocument { snapshot, error in
             if let error = error {
                 completion(.failure(error))
             } else if let snapshot = snapshot, snapshot.exists, let data = snapshot.data() {
@@ -23,7 +23,7 @@ class UserService {
             } else {
                 completion(.failure(NSError(domain: "UserService", code: -1, userInfo: [NSLocalizedDescriptionKey: "User not found."])))
             }
-         }
+        }
     }
     
     func fetchUserProfileByEmail(email: String, completion: @escaping (Result<UserProfile, Error>) -> Void) {

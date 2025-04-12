@@ -1,5 +1,5 @@
 //
-//  App/Managers/ToastManager.swift
+//  Managers/ToastManager.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 27/2/25.

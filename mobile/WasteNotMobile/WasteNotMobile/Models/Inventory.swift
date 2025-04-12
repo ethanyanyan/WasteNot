@@ -22,6 +22,8 @@ struct InventoryItem: Identifiable {
     var title: String
     var reminderDate: Date?
     var category: String
+    var createdBy: String
+    var lastUpdatedBy: String
 }
 
 struct InventoryInvitation: Identifiable {
