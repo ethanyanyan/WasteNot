@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { db, auth } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { doc, updateDoc, getDocs, collection, query, where, arrayUnion, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDocs, collection, query, where, setDoc } from "firebase/firestore";
+import { v4 as uuidv4 } from "uuid";
 import "./SharedInventory.css";
 
 const SharedInventory = () => {
@@ -11,15 +12,14 @@ const SharedInventory = () => {
 
     const handleAddMember = async () => {
         if (!user) {
-            console.error("User is not authenticated.");
             alert("Please log in first.");
             return;
         }
+    
         if (!newMemberEmail.trim()) {
             alert("Please enter a valid email address.");
             return;
         }
-        console.log("Authenticated user:", user.uid);
     
         try {
             const usersRef = collection(db, "users");
@@ -28,48 +28,78 @@ const SharedInventory = () => {
     
             if (userSnapshot.empty) {
                 alert("User not found!");
-                console.warn("User not found with email:", newMemberEmail);
                 return;
             }
     
-            const memberId = userSnapshot.docs[0].id;
-            console.log("Found member ID:", memberId);
+            const invitedUserId = userSnapshot.docs[0].id;
+            const inventoriesRef = collection(db, "inventories");
     
-            const inventoryRef = doc(db, "sharedInventories", user.uid);
-            console.log("Document path:", inventoryRef.path);
-
-            const inventoryData = {
-                owner: user.uid,
-                name: "Home",
-                createdAt: new Date(),
-                members: {
-                    [user.uid]: "owner",
-                    [memberId]: "member"
-                },
-                membersArray: [user.uid, memberId],
-            };
-            console.log("Inventory data to be set:", inventoryData);
-
-            const inventoryDoc = await getDoc(inventoryRef);
-            console.log("Shared Inventory Document Exists:", inventoryDoc.exists());
-            if (!inventoryDoc.exists()) {
-                await setDoc(inventoryRef, inventoryData);
-                console.log("Created new shared inventory document with owner:", user.uid);
+            // Step 1: Get both inventories
+            const currentUserInventoryQuery = query(inventoriesRef, where("owner", "==", user.uid));
+            const invitedUserInventoryQuery = query(inventoriesRef, where("owner", "==", invitedUserId));
+    
+            const [currentUserInventorySnapshot, invitedUserInventorySnapshot] = await Promise.all([
+                getDocs(currentUserInventoryQuery),
+                getDocs(invitedUserInventoryQuery)
+            ]);
+    
+            let currentUserDocRef = null;
+            let invitedUserDocRef = null;
+    
+            const allMemberSet = new Set([user.uid, invitedUserId]);
+    
+            // Step 2: collect all members from current user's doc
+            if (!currentUserInventorySnapshot.empty) {
+                const docData = currentUserInventorySnapshot.docs[0].data();
+                currentUserDocRef = currentUserInventorySnapshot.docs[0].ref;
+                (docData.membersArray || []).forEach(uid => allMemberSet.add(uid));
             } else {
-                await updateDoc(inventoryRef, {
-                    [`members.${memberId}`]: "member",
-                    membersArray: arrayUnion(memberId)
-                });
-                console.log("Updated existing shared inventory with new member:", memberId);
+                currentUserDocRef = doc(db, "inventories", uuidv4());
             }
     
-            setMessage("Member added to shared inventory successfully!");
+            // Step 3: collect all members from invited user's doc
+            if (!invitedUserInventorySnapshot.empty) {
+                const docData = invitedUserInventorySnapshot.docs[0].data();
+                invitedUserDocRef = invitedUserInventorySnapshot.docs[0].ref;
+                (docData.membersArray || []).forEach(uid => allMemberSet.add(uid));
+            } else {
+                invitedUserDocRef = doc(db, "inventories", uuidv4());
+            }
+    
+            // Step 4: build unified members map
+            const mergedMembersArray = Array.from(allMemberSet);
+            const mergedMembersObject = {};
+            mergedMembersArray.forEach(uid => {
+                mergedMembersObject[uid] = (uid === user.uid || uid === invitedUserId) ? "owner" : "member";
+            });
+    
+            // Step 5: define shared structure
+            const newInventoryData = {
+                name: "Home",
+                createdAt: new Date(),
+                members: mergedMembersObject,
+                membersArray: mergedMembersArray
+            };
+    
+            // Step 6: write to both inventories (merge so we don’t overwrite)
+            await setDoc(currentUserDocRef, {
+                ...newInventoryData,
+                owner: user.uid
+            }, { merge: true });
+    
+            await setDoc(invitedUserDocRef, {
+                ...newInventoryData,
+                owner: invitedUserId
+            }, { merge: true });
+    
+            setMessage("Shared inventory updated successfully!");
             setNewMemberEmail("");
+    
         } catch (error) {
             console.error("Error adding member:", error.code, error.message, error);
             alert("Failed to add member to shared inventory. Please try again. Error: " + error.message);
         }
-    };
+    };        
 
     return (
         <div className="shared-inventory">

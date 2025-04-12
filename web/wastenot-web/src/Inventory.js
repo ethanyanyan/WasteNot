@@ -50,8 +50,8 @@ const Inventory = () => {
           console.log("Personal Inventory Items:", personalItems);
           
           // Fetch shared inventory
-          const sharedInventoryRef = collection(db, "sharedInventories");
-          const sharedQuery = query(sharedInventoryRef, where(`members.${user.uid}`, "in", ["owner", "member"]));
+          const sharedInventoryRef = collection(db, "inventories");
+          const sharedQuery = query(sharedInventoryRef, where("owner", "==", user.uid));
           const sharedInventorySnapshot = await getDocs(sharedQuery);
           console.log("Shared Inventory Query Snapshot:", sharedInventorySnapshot);
 
