@@ -1,5 +1,5 @@
 //
-//  Views/Home/Scan/ConfirmationView.swift
+//  ConfirmationView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.
@@ -8,6 +8,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseRemoteConfig
 
 struct ConfirmationView: View {
     let scannedCode: String
@@ -33,6 +34,9 @@ struct ConfirmationView: View {
     @State private var categories: [String] = ["Dairy", "Vegetables", "Frozen", "Bakery", "Meat", "Other"]
     @State private var reminderDate: Date = Date()
     @State private var reminderService = ReminderDateService()
+    
+    // Remote Config variable for testing the confirmation button text
+    @State private var confirmButtonText: String = "Confirm and Update Inventory"
 
     var body: some View {
         Form {
@@ -55,11 +59,9 @@ struct ConfirmationView: View {
                         Text(cat)
                     }
                 }
-                // The DatePicker now shows the effective reminder date.
                 DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
             }
             
-            // Picker for shared inventory selection.
             Section(header: Text("Save To Inventory")) {
                 if sharedInventoryManager.sharedInventories.isEmpty {
                     Text("No shared inventories available.")
@@ -80,7 +82,8 @@ struct ConfirmationView: View {
             }
 
             Section {
-                Button("Confirm and Update Inventory") {
+                // Button text is controlled by Remote Config for A/B testing.
+                Button(confirmButtonText) {
                     updateInventory()
                 }
             }
@@ -94,18 +97,37 @@ struct ConfirmationView: View {
         }
         .navigationTitle("Confirm Scan")
         .onAppear {
-            // Fetch default raw reminder date based on category
+            // Fetch default reminder date mapping.
             reminderService.fetchMapping {
                 let rawDefault = reminderService.defaultReminderDate(for: category)
                 let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
                 let leadTimeInSeconds = Int(globalLeadTime * 3600)
                 reminderDate = Calendar.current.date(byAdding: .second, value: -leadTimeInSeconds, to: rawDefault) ?? rawDefault
             }
-            // Also ensure shared inventories are refreshed.
+            // Refresh shared inventories.
             sharedInventoryManager.refreshInventories()
+            
+            // -----------------------------
+            // Firebase Remote Config Setup:
+            // -----------------------------
+            let remoteConfig = RemoteConfig.remoteConfig()
+            // Set a default value for the parameter so that the app works even if the fetch fails.
+            remoteConfig.setDefaults(["confirm_button_text": "Confirm and Update Inventory" as NSObject])
+            
+            // Fetch Remote Config values with an expiration duration.
+            remoteConfig.fetch(withExpirationDuration: 3600) { status, error in
+                if status == .success {
+                    remoteConfig.activate { changed, error in
+                        DispatchQueue.main.async {
+                            self.confirmButtonText = remoteConfig["confirm_button_text"].stringValue ?? "Confirm and Update Inventory"
+                        }
+                    }
+                } else {
+                    print("Remote Config fetch failed: \(error?.localizedDescription ?? "No error available.")")
+                }
+            }
         }
         .onChange(of: category) { newValue in
-            // Update reminder date when category changes
             let rawDefault = reminderService.defaultReminderDate(for: newValue)
             let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
             let leadTimeInSeconds = Int(globalLeadTime * 3600)
@@ -122,8 +144,6 @@ struct ConfirmationView: View {
 
         let currentUid = Auth.auth().currentUser?.uid ?? "Unknown"
 
-        // Use the reminderDate directly because it has already been initialized
-        // as the effective reminder date.
         let newItem = InventoryItem(
             id: "", // Will be set by service.
             barcode: scannedCode,
@@ -212,7 +232,6 @@ struct ConfirmationView: View {
                         self.productImageURL = imageUrl
                         self.category = newCategory
 
-                        // Set reminderDate using the effective default based on the new category.
                         let rawDefault = self.reminderService.defaultReminderDate(for: newCategory)
                         let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
                         let leadTimeInSeconds = Int(globalLeadTime * 3600)
@@ -233,10 +252,3 @@ struct ConfirmationView: View {
         task.resume()
     }
 }
-
-private let itemDateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateStyle = .medium
-    formatter.timeStyle = .short
-    return formatter
-}()

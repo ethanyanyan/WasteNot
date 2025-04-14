@@ -1,5 +1,5 @@
 //
-//  Managers/SharedInventoryManager.swift
+//  SharedInventoryManager.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 12/4/25.
@@ -42,8 +42,8 @@ class SharedInventoryManager: ObservableObject {
                     }
                     DispatchQueue.main.async {
                         self.sharedInventories = inventories
-                        if !inventories.isEmpty {
-                            // Always set the selected inventory to the first in the list.
+                        if !inventories.isEmpty, self.selectedInventory == nil {
+                            // If no inventory is currently selected, default to the first one.
                             self.selectInventory(inventories.first!)
                         }
                     }
@@ -53,8 +53,8 @@ class SharedInventoryManager: ObservableObject {
     
     func selectInventory(_ inventory: SharedInventory) {
         self.selectedInventory = inventory
-        // Update the InventoryService global variable to use this shared inventory.
-        InventoryService.shared.currentInventoryId = inventory.id
+        // The updated InventoryService now reads directly from SharedInventoryManager.shared.selectedInventory,
+        // so there is no need to update a separate global variable here.
     }
     
     func refreshInventories() {

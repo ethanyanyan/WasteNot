@@ -1,5 +1,5 @@
 //
-//  Views/Home/Inventory/InventoryView.swift
+//  InventoryView.swift
 //  WasteNotMobile
 //
 //  Created by Ethan Yan on 23/2/25.
@@ -84,7 +84,6 @@ struct InventoryView: View {
                     // Refresh shared inventories.
                     sharedInventoryManager.refreshInventories()
                     fetchNotificationCount()
-                    // Do not call fetchItems() immediately.
                     // Observe invitation acceptance notifications.
                     NotificationCenter.default.addObserver(forName: NSNotification.Name("InvitationAccepted"), object: nil, queue: .main) { _ in
                         sharedInventoryManager.refreshInventories()
@@ -237,10 +236,9 @@ struct InventoryView: View {
     }
     
     private func fetchItems() {
-        // Check that a shared inventory is selected
-        guard let _ = InventoryService.shared.currentInventoryId else {
+        // Check that a shared inventory is selected using the SharedInventoryManager.
+        guard sharedInventoryManager.selectedInventory != nil else {
             print("No shared inventory selected. Will retry fetching items after delay.")
-            // Delay and then try again
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 fetchItems()
             }

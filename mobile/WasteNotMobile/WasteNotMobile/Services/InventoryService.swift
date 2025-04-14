@@ -19,9 +19,6 @@ class InventoryService {
     static let shared = InventoryService()
     private let db = Firestore.firestore()
     
-    // The currently selected shared inventory's document ID.
-    var currentInventoryId: String?
-    
     private init() {}
     
     // MARK: - Inventory Item CRUD Operations
@@ -34,7 +31,7 @@ class InventoryService {
                                         userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
             return
         }
-        guard let inventoryId = currentInventoryId else {
+        guard let inventoryId = SharedInventoryManager.shared.selectedInventory?.id else {
             completion(.failure(NSError(domain: "InventoryService", code: -3,
                                         userInfo: [NSLocalizedDescriptionKey: "No shared inventory selected."])))
             return
@@ -57,7 +54,6 @@ class InventoryService {
                 if let error = error {
                     completion(.failure(error))
                 } else {
-                    // Schedule the updated reminder.
                     NotificationsService.shared.scheduleReminder(for: updatedItem)
                     completion(.success(()))
                 }
@@ -72,7 +68,7 @@ class InventoryService {
                                         userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
             return
         }
-        guard let inventoryId = currentInventoryId else {
+        guard let inventoryId = SharedInventoryManager.shared.selectedInventory?.id else {
             completion(.failure(NSError(domain: "InventoryService", code: -3,
                                         userInfo: [NSLocalizedDescriptionKey: "No shared inventory selected."])))
             return
@@ -122,7 +118,7 @@ class InventoryService {
                                         userInfo: [NSLocalizedDescriptionKey: "User not logged in."])))
             return
         }
-        guard let inventoryId = currentInventoryId else {
+        guard let inventoryId = SharedInventoryManager.shared.selectedInventory?.id else {
             completion(.failure(NSError(domain: "InventoryService", code: -3,
                                         userInfo: [NSLocalizedDescriptionKey: "No shared inventory selected."])))
             return
@@ -143,9 +139,9 @@ class InventoryService {
     
     // MARK: - Fetching Data
     
-    /// Fetches inventory items from the currently selected inventory.
+    /// Fetches inventory items from the selected shared inventory.
     func fetchInventoryItems(completion: @escaping (Result<[InventoryItem], Error>) -> Void) {
-        guard let inventoryId = currentInventoryId else {
+        guard let inventoryId = SharedInventoryManager.shared.selectedInventory?.id else {
             completion(.failure(NSError(domain: "InventoryService", code: -3,
                                         userInfo: [NSLocalizedDescriptionKey: "No shared inventory selected."])))
             return
@@ -203,6 +199,8 @@ class InventoryService {
             }
     }
     
+    // MARK: - Shared Inventory Management
+    
     /// Fetches shared inventories that the current user is a member of.
     func fetchSharedInventories(completion: @escaping (Result<[SharedInventory], Error>) -> Void) {
         guard let user = Auth.auth().currentUser else {
@@ -211,7 +209,7 @@ class InventoryService {
             return
         }
         
-        // Here we assume each inventory document includes a "membersArray" field with UIDs.
+        // Assumes each inventory document includes a "membersArray" field with user UIDs.
         db.collection("inventories")
             .whereField("membersArray", arrayContains: user.uid)
             .getDocuments { snapshot, error in
@@ -229,6 +227,7 @@ class InventoryService {
     }
     
     // MARK: - Create Shared Inventory
+    
     /// Creates a new shared inventory document.
     func createSharedInventory(name: String, completion: @escaping (Result<SharedInventory, Error>) -> Void) {
         guard let user = Auth.auth().currentUser else {
@@ -237,13 +236,10 @@ class InventoryService {
             return
         }
         
-        // Create the shared inventory document with the current user as the owner.
         let inventoryData: [String: Any] = [
             "name": name,
             "owner": user.uid,
-            // You can initialize the members map with the owner, e.g.:
             "members": [user.uid: "owner"],
-            // Also include a membersArray field for query convenience.
             "membersArray": [user.uid],
             "createdAt": FieldValue.serverTimestamp()
         ]
@@ -274,7 +270,7 @@ class InventoryService {
     }
     
     // MARK: - Shared Inventory Members Management
-
+    
     /// Fetches member UIDs of a shared inventory.
     func fetchSharedInventoryMembers(inventoryId: String, completion: @escaping (Result<[String], Error>) -> Void) {
         db.collection("inventories").document(inventoryId).getDocument { snapshot, error in
@@ -289,13 +285,13 @@ class InventoryService {
                     completion(.success([]))
                 }
             } else {
-                completion(.failure(NSError(domain: "InventoryService", code: -5, userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
+                completion(.failure(NSError(domain: "InventoryService", code: -5,
+                                            userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
             }
         }
     }
-
+    
     /// Adds a member to a shared inventory using their email address.
-    /// It looks up the user document in the "users" collection by email, then updates the inventory’s "members" map and "membersArray".
     func addMemberToSharedInventory(inventoryId: String, memberEmail: String, completion: @escaping (Result<Void, Error>) -> Void) {
         db.collection("users")
           .whereField("email", isEqualTo: memberEmail)
@@ -314,16 +310,19 @@ class InventoryService {
                   "members.\(memberUid)": "member",
                   "membersArray": FieldValue.arrayUnion([memberUid])
               ]
-              self.db.collection("inventories").document(inventoryId).updateData(updateData) { error in
-                  if let error = error {
-                      completion(.failure(error))
-                  } else {
-                      completion(.success(()))
+              self.db.collection("inventories")
+                  .document(inventoryId)
+                  .updateData(updateData) { error in
+                      if let error = error {
+                          completion(.failure(error))
+                      } else {
+                          completion(.success(()))
+                      }
                   }
-              }
           }
     }
     
+    /// Fetches the name of a shared inventory.
     func fetchInventoryName(for inventoryId: String, completion: @escaping (Result<String, Error>) -> Void) {
         db.collection("inventories").document(inventoryId).getDocument { snapshot, error in
             if let error = error {
@@ -331,9 +330,9 @@ class InventoryService {
             } else if let snapshot = snapshot, snapshot.exists, let data = snapshot.data(), let name = data["name"] as? String {
                 completion(.success(name))
             } else {
-                completion(.failure(NSError(domain: "InventoryService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
+                completion(.failure(NSError(domain: "InventoryService", code: -1,
+                                            userInfo: [NSLocalizedDescriptionKey: "Inventory not found."])))
             }
         }
     }
-
 }
