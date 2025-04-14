@@ -119,9 +119,3 @@ struct LoginView: View {
         .navigationBarHidden(true)
     }
 }
-
-struct LoginView_Previews: PreviewProvider {
-    static var previews: some View {
-        LoginView(authVM: AuthViewModel())
-    }
-}

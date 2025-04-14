@@ -13,11 +13,19 @@ import FirebaseMessaging
 class AuthViewModel: ObservableObject {
     @Published var currentUser: User? = Auth.auth().currentUser
     @Published var verificationMessage: String? = nil
+    var isSigningUp: Bool = false  // Flag to bypass verification check during sign-up
     
     init() {
         // Listen for auth state changes.
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self = self else { return }
+            
+            // Bypass email verification check if sign up is in progress.
+            if self.isSigningUp {
+                print("Skipping auth listener check because sign up is in progress.")
+                return
+            }
+            
             if let user = user {
                 // Reload user to check email verification status.
                 user.reload { error in
@@ -67,7 +75,7 @@ class AuthViewModel: ObservableObject {
     }
     
     func signIn(email: String, password: String, completion: @escaping (Result<Void, Error>) -> Void) {
-        Auth.auth().signIn(withEmail: email, password: password) { [weak self] authResult, error in
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] _, error in
             DispatchQueue.main.async {
                 if let error = error {
                     completion(.failure(error))
@@ -98,9 +106,13 @@ class AuthViewModel: ObservableObject {
     }
     
     func signUp(email: String, password: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        // Set the flag before starting the sign-up process.
+        isSigningUp = true
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             DispatchQueue.main.async {
+                guard let self = self else { return }
                 if let error = error {
+                    self.isSigningUp = false
                     completion(.failure(error))
                 } else if let user = authResult?.user {
                     let db = Firestore.firestore()
@@ -109,10 +121,13 @@ class AuthViewModel: ObservableObject {
                         "createdAt": FieldValue.serverTimestamp()
                     ]) { error in
                         if let error = error {
+                            self.isSigningUp = false
                             completion(.failure(error))
                         } else {
                             user.sendEmailVerification { emailError in
                                 DispatchQueue.main.async {
+                                    // Reset the flag after the sign-up flow has finished.
+                                    self.isSigningUp = false
                                     if let emailError = emailError {
                                         completion(.failure(emailError))
                                     } else {
@@ -121,7 +136,7 @@ class AuthViewModel: ObservableObject {
                                         } catch {
                                             print("Error signing out: \(error.localizedDescription)")
                                         }
-                                        self?.verificationMessage = "Sign up successful. A verification email has been sent. Please verify your email before logging in."
+                                        self.verificationMessage = "Sign up successful. A verification email has been sent. Please verify your email before logging in."
                                         completion(.success(()))
                                     }
                                 }

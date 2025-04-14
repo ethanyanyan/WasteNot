@@ -2,7 +2,7 @@
 //  Services/UserService.swift
 //  WasteNotMobile
 //
-//  Created by Ethan Yan on [Date].
+//  Created by Ethan Yan on 2/3/25.
 //
 
 import FirebaseFirestore
