@@ -12,7 +12,7 @@ const firebaseConfig = {
     appId: process.env.REACT_APP_FIREBASE_APP_ID,
     measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID
 };
-
+console.log(firebaseConfig);
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -22,3 +22,5 @@ const storage = getStorage(app);
 setPersistence(auth, browserLocalPersistence);
 
 export { auth, db, storage };
+
+

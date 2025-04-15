@@ -9,6 +9,10 @@ const Inventory = () => {
   const [user] = useAuthState(auth);
   const [editItem, setEditItem] = useState(null);
   const [editedDate, setEditedDate] = useState("");
+  const [userInventories, setUserInventories] = useState([]);
+  const [selectedInventoryId, setSelectedInventoryId] = useState(null);
+  const [inventoryNameMap, setInventoryNameMap] = useState({});
+
   
   const categoryReminderMap = {
     Dairy: 10,
@@ -51,7 +55,7 @@ const Inventory = () => {
           
           // Fetch shared inventory
           const sharedInventoryRef = collection(db, "inventories");
-          const sharedQuery = query(sharedInventoryRef, where("owner", "==", user.uid));
+          const sharedQuery = query(sharedInventoryRef, where("memmbersArray", "array-contains", user.uid));
           const sharedInventorySnapshot = await getDocs(sharedQuery);
           console.log("Shared Inventory Query Snapshot:", sharedInventorySnapshot);
 
@@ -74,6 +78,18 @@ const Inventory = () => {
                 sharedItems = [...sharedItems, ...memberItems];
             }
           }
+
+          // const inventoriesRef = collection(db, "inventories");
+          // const q = query(inventoriesRef, where("memeberArray", "array-contains", user.uid));
+          // const snapshot = await getDocs(q);
+
+          // const inventories = [];
+          // const nameMap = {};
+
+          // for (const docSnap of snapshot.docs) {
+          //   const inventoryId = docSnap.id;
+          //   const data = docSnap.data();
+          // }
           
           const filteredSharedItems = sharedItems.filter(item => !personalItems.some(personalItem => personalItem.id === item.id));
           // Merge both inventories
@@ -164,36 +180,77 @@ const Inventory = () => {
         }
 
         try {
-            const itemId = doc(collection(db, `users/${user.uid}/inventory`)).id;
 
+            // Look for existing "Personal Inventory"
+            const inventoriesRef = collection(db, "inventories");
+            const q = query(inventoriesRef, where("membersArray", "array-contains", user.uid));
+            const querySnapshot = await getDocs(q);
+
+            let personalInventoryDoc = null;
+
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.name === "Personal Inventory") {
+                    personalInventoryDoc = docSnap;
+                }
+            });
+
+            let inventoryId;
+            if (personalInventoryDoc) {
+                inventoryId = personalInventoryDoc.id;
+                console.log("Using existing 'Personal Inventory':", inventoryId);
+            } else {
+                // Create new "Personal Inventory" if it doesn't already exist
+                const newInventoryRef = doc(inventoriesRef);
+                inventoryId = newInventoryRef.id;
+
+                const newInventoryData = {
+                    name: "Personal Inventory",
+                    createdAt: new Date(),
+                    members: { [user.uid]: "owner" },
+                    membersArray: [user.uid],
+                    owner: user.uid
+                };
+
+                await setDoc(newInventoryRef, newInventoryData);
+                console.log("Created new 'Personal Inventory':", inventoryId);
+            }
+
+            // Add item to the inventory’s items subcollection
+            const itemId = doc(collection(db, `inventories/${inventoryId}/items`)).id;
             const localDate = new Date(newItem.reminderDate);
-            
+
             const newItemData = {
                 ...newItem,
-                reminderDate: Timestamp.fromDate(localDate), // Store the corrected date
+                reminderDate: Timestamp.fromDate(localDate),
                 lastUpdated: new Date(),
                 quantity: newItem.quantity > 0 ? newItem.quantity : 1
             };
 
-            const itemRef = doc(db, `users/${user.uid}/inventory`, itemId);
+            const itemRef = doc(db, `inventories/${inventoryId}/items`, itemId);
             await setDoc(itemRef, newItemData);
 
-            setInventoryItems([...inventoryItems, { id: itemId, ...newItemData }]);
+            setInventoryItems(prev => [...prev, { id: itemId, ...newItemData }]);
+
+            // Reset form state
             const defaultReminderDate = new Date();
-            defaultReminderDate.setDate(defaultReminderDate.getDate() + 7); // Add 7 days from today
+            defaultReminderDate.setDate(defaultReminderDate.getDate() + 7);
+
             setNewItem({
                 category: "Other",
                 itemName: "",
                 lastUpdated: new Date(),
                 productDescription: "",
                 quantity: 1,
-                reminderDate: defaultReminderDate.toISOString().split('T')[0], // Reset correctly
+                reminderDate: defaultReminderDate.toISOString().split('T')[0],
                 barcode: "",
                 imageURL: "",
                 ingredients: "",
                 nutritionFacts: "",
                 title: ""
             });
+
+            alert("Item added to your Personal Inventory!");
 
         } catch (error) {
             console.error("Error adding item:", error);
