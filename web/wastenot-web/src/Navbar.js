@@ -4,9 +4,9 @@ const Navbar = () => {
     const location = useLocation();
     const currentPath = location.pathname.toLowerCase();
 
-    const isReceiptPage = currentPath === "/scan";
-    const isSensorPage = currentPath === "/sensor";
-    const isCommunitySwapPage = currentPath === "/communityswap";
+    // const isReceiptPage = currentPath === "/scan";
+    // const isSensorPage = currentPath === "/sensor";
+    // const isCommunitySwapPage = currentPath === "/communityswap";
 
     return (
         <nav className="navbar">
@@ -15,9 +15,9 @@ const Navbar = () => {
                 <Link to="/home">Home</Link>
                 <Link to="/inventory">Inventory</Link>
                 <Link to="/sharedinventory">Add new Member</Link>
-                {!isCommunitySwapPage && !isSensorPage && <Link to="/scan">Scan (Approach A)</Link>}
+                {/* {!isCommunitySwapPage && !isSensorPage && <Link to="/scan">Scan (Approach A)</Link>}
                 {!isReceiptPage && !isCommunitySwapPage && <Link to="/sensor">Sensor (Approach B)</Link>}
-                {!isSensorPage && !isReceiptPage && <Link to="/communityswap">Community Swap (Approach C)</Link>}
+                {!isSensorPage && !isReceiptPage && <Link to="/communityswap">Community Swap (Approach C)</Link>} */}
                 <Link to="/profile">Profile</Link>
             </div>
         </nav>

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import "./Scan.css";
 import Quagga from "quagga";
 import { db, auth } from "./firebase";
+import { query, where, getDocs } from "firebase/firestore";
 import { collection, doc, setDoc, Timestamp } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
@@ -170,14 +171,71 @@ const Scan = () => {
         }
 
         try {
-            const itemId = productData.id || doc(collection(db, `users/${user.uid}/inventory`)).id;
+            // const itemId = productData.id || doc(collection(db, `users/${user.uid}/inventory`)).id;
 
-            const userInventoryRef = doc(db, `users/${user.uid}/inventory/${itemId}`);
-            console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${itemId}`);
-            console.log("Product data being saved:", productData);
+            // const userInventoryRef = doc(db, `users/${user.uid}/inventory/${itemId}`);
+            // console.log("Saving product to Firestore at:", `users/${user.uid}/inventory/${itemId}`);
+            // console.log("Product data being saved:", productData);
 
-            await setDoc(userInventoryRef, productData);
-            alert("Product saved to inventory!");
+            // await setDoc(userInventoryRef, productData);
+            // alert("Product saved to inventory!");
+
+            const inventoriesRef = collection(db, "inventories");
+            const q = query(inventoriesRef, where("membersArray", "array-contains", user.uid));
+            const querySnapshot = await getDocs(q);
+    
+            let personalInventoryDoc = null;
+    
+            // Check for an inventory named "Personal Inventory"
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.name === "Personal Inventory") {
+                    personalInventoryDoc = docSnap;
+                }
+            });
+    
+            let inventoryId;
+            if (personalInventoryDoc) {
+                inventoryId = personalInventoryDoc.id;
+                console.log("Using existing 'Personal Inventory':", inventoryId);
+            } else {
+                // Create a new personal inventory
+                const newDocRef = doc(inventoriesRef);
+                inventoryId = newDocRef.id;
+    
+                const newInventory = {
+                    name: "Personal Inventory",
+                    createdAt: new Date(),
+                    members: { [user.uid]: "owner" },
+                    membersArray: [user.uid],
+                    owner: user.uid
+                };
+    
+                await setDoc(newDocRef, newInventory);
+                console.log("Created new 'Personal Inventory':", inventoryId);
+            }
+    
+            // // Save item into the selected inventory
+            // const itemId = doc(collection(db, `inventories/${inventoryId}/items`)).id;
+            // const inventoryItemRef = doc(db, `inventories/${inventoryId}/items/${itemId}`);
+            // await setDoc(inventoryItemRef, productData);
+    
+            // alert("Product saved to your Personal Inventory!");
+            // Add item to the inventory’s items subcollection
+            const itemId = doc(collection(db, `inventories/${inventoryId}/items`)).id;
+            const localDate = new Date(productData.reminderDate);
+
+            const newItemData = {
+                ...productData,
+                reminderDate: Timestamp.fromDate(localDate),
+                lastUpdated: new Date(),
+                quantity: productData.quantity > 0 ? productData.quantity : 1
+            };
+
+            const itemRef = doc(db, `inventories/${inventoryId}/items`, itemId);
+            await setDoc(itemRef, newItemData);
+
+            
         } catch (error) {
             console.error("Error saving product:", error);
             alert("Failed to save product. Check Firestore rules and console for details.");

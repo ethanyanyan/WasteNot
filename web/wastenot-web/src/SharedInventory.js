@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { db, auth } from "./firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDocs, collection, query, where, setDoc } from "firebase/firestore";
@@ -9,6 +9,7 @@ const SharedInventory = () => {
     const [user] = useAuthState(auth);
     const [newMemberEmail, setNewMemberEmail] = useState("");
     const [message, setMessage] = useState("");
+    
 
     const handleAddMember = async () => {
         if (!user) {
