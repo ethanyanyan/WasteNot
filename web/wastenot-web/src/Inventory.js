@@ -13,6 +13,10 @@ const Inventory = () => {
   const [selectedInventoryId, setSelectedInventoryId] = useState(null);
   const [inventoryNameMap, setInventoryNameMap] = useState({});
 
+  const [newMemberEmail, setNewMemberEmail] = useState("");
+  const [addMemberMessage, setAddMemberMessage] = useState("");
+
+
   
   const categoryReminderMap = {
     Dairy: 10,
@@ -184,16 +188,6 @@ const Inventory = () => {
   };
 
   const removeItem = async (itemId) => {
-    // if (user) {
-    //   try {
-    //     const itemRef = doc(db, `users/${user.uid}/inventory`, itemId);
-    //     await deleteDoc(itemRef);
-
-    //     setInventoryItems(prevItems => prevItems.filter(item => item.id !== itemId));
-    //   } catch (error) {
-    //     console.error("Error removing item:", error);
-    //   }
-    // }
 
     if (user && selectedInventoryId) {
       try {
@@ -229,128 +223,6 @@ const Inventory = () => {
     }));
   };
 
-
-  // const handleAddItem = async () => {
-  //   if (user) {
-  //       if (!newItem.itemName.trim() || !newItem.productDescription.trim() || !newItem.reminderDate) {
-  //           alert("Please fill out all required fields: Item Name, Product Description, and Reminder Date.");
-  //           return;
-  //       }
-
-  //       try {
-
-  //           // Look for existing "Personal Inventory"
-  //           const inventoriesRef = collection(db, "inventories");
-  //           const q = query(inventoriesRef, where("membersArray", "array-contains", user.uid));
-  //           const querySnapshot = await getDocs(q);
-
-  //           let personalInventoryDoc = null;
-
-  //           querySnapshot.forEach((docSnap) => {
-  //               const data = docSnap.data();
-  //               if (data.name === "Personal Inventory") {
-  //                   personalInventoryDoc = docSnap;
-  //               }
-  //           });
-
-  //           let inventoryId;
-  //           if (personalInventoryDoc) {
-  //               inventoryId = personalInventoryDoc.id;
-  //               console.log("Using existing 'Personal Inventory':", inventoryId);
-  //           } else {
-  //               // Create new "Personal Inventory" if it doesn't already exist
-  //               const newInventoryRef = doc(inventoriesRef);
-  //               inventoryId = newInventoryRef.id;
-
-  //               const newInventoryData = {
-  //                   name: "Personal Inventory",
-  //                   createdAt: new Date(),
-  //                   members: { [user.uid]: "owner" },
-  //                   membersArray: [user.uid],
-  //                   owner: user.uid
-  //               };
-
-  //               await setDoc(newInventoryRef, newInventoryData);
-  //               console.log("Created new 'Personal Inventory':", inventoryId);
-  //           }
-
-  //           // Add item to the inventory’s items subcollection
-  //           const itemId = doc(collection(db, `inventories/${inventoryId}/items`)).id;
-  //           const localDate = new Date(newItem.reminderDate);
-
-  //           const newItemData = {
-  //               ...newItem,
-  //               reminderDate: Timestamp.fromDate(localDate),
-  //               lastUpdated: new Date(),
-  //               quantity: newItem.quantity > 0 ? newItem.quantity : 1
-  //           };
-
-  //           const itemRef = doc(db, `inventories/${inventoryId}/items`, itemId);
-  //           await setDoc(itemRef, newItemData);
-
-            
-  //           setUserInventories(prev => {
-  //             const updatedInventories = [...prev];
-  //             const inventoryIndex = updatedInventories.findIndex(inv => inv.id === inventoryId);
-              
-  //             if (inventoryIndex >= 0) {
-  //               // Add the new item to the existing inventory
-  //               updatedInventories[inventoryIndex] = {
-  //                 ...updatedInventories[inventoryIndex],
-  //                 items: [
-  //                   ...updatedInventories[inventoryIndex].items,
-  //                   { id: itemId, ...newItemData, inventoryId }
-  //                 ]
-  //               };
-  //             } else {
-  //               // If this is a newly created inventory, add it to the list
-  //               updatedInventories.push({
-  //                 id: inventoryId,
-  //                 items: [{ id: itemId, ...newItemData, inventoryId }]
-  //               });
-                
-  //               // Update the name map
-  //               setInventoryNameMap(prev => ({
-  //                 ...prev,
-  //                 [inventoryId]: "Personal Inventory"
-  //               }));
-                
-  //               // If this is the first inventory, select it
-  //               if (!selectedInventoryId) {
-  //                 setSelectedInventoryId(inventoryId);
-  //               }
-  //             }
-              
-  //             return updatedInventories;
-  //           });
-
-  //           // Reset form state
-  //           const defaultReminderDate = new Date();
-  //           defaultReminderDate.setDate(defaultReminderDate.getDate() + 7);
-
-  //           setNewItem({
-  //               category: "Other",
-  //               itemName: "",
-  //               lastUpdated: new Date(),
-  //               productDescription: "",
-  //               quantity: 1,
-  //               reminderDate: defaultReminderDate.toISOString().split('T')[0],
-  //               barcode: "",
-  //               imageURL: "",
-  //               ingredients: "",
-  //               nutritionFacts: "",
-  //               title: ""
-  //           });
-
-  //           alert("Item added to your Personal Inventory!");
-
-  //       } catch (error) {
-  //           console.error("Error adding item:", error);
-  //           alert("Failed to add item. Please try again.");
-  //       }
-  //   }
-  // };
-  
 
   const handleAddItem = async () => {
     if (user) {
@@ -478,6 +350,9 @@ const Inventory = () => {
       }
     }
   };
+
+
+
   const displayedItems = userInventories.find(inv => inv.id === selectedInventoryId)?.items || [];
 
   return (
@@ -507,8 +382,7 @@ const Inventory = () => {
                 {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}
                 {item.shared && "(Shared)"}
               </span>
-              {/* <span>{item.itemName} {item.shared && "(Shared)"}</span> */}
-              {/* <span>{item.itemName} {item.imageURL && <img src={item.imageURL} alt={item.itemName} width="50" />}</span> */}
+              
               <span>
               Expires: {item.reminderDate ? 
                 new Date(item.reminderDate.toDate().getTime() + new Date().getTimezoneOffset() * 60000).toLocaleDateString(undefined, {
