@@ -41,7 +41,7 @@ function App() {
                         <Route path="/signup" element={<SignUp />} />
                         <Route path="/home" element={user ? <Home /> : <Navigate to="/" />} />
                         <Route path="/inventory" element={user ? <Inventory /> : <Navigate to="/" />} />
-                        <Route path="/sharedinventory" element={user ? <SharedInventory /> : <Navigate to="/" />} />
+                        {/* <Route path="/sharedinventory" element={user ? <SharedInventory /> : <Navigate to="/" />} /> */}
                         <Route path="/scan" element={user ? <Scan /> : <Navigate to="/" />} />
                         <Route path="/profile" element={user ? <Profile userData={userData} /> : <Navigate to="/" />} />
                     </Routes>
