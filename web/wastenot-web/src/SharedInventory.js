@@ -9,39 +9,7 @@ const SharedInventory = () => {
     const [user] = useAuthState(auth);
     const [newMemberEmail, setNewMemberEmail] = useState("");
     const [message, setMessage] = useState("");
-    // const [inventoryItems, setInventoryItems] = useState([]);
-
-    // useEffect(() => {
-    //     const fetchInventoryItems = async () =>{
-    //         if (!user) return;
-            
-    //         try {
-    //             // find inventory where user is in membersArray
-    //             const inventoriesRef = await collection(db, "inventories");
-    //             const q = query(inventoriesRef, where("memmbersArray", "array-contains", user.uid));
-    //             const querySnapshot = await getDocs(q);
-    //             if (querySnapshot.empty) {
-    //                 console.log("No inventory found for this user.");
-    //                 return;
-    //             }
-
-    //             const inventoryDoc = querySnapshot.docs[0]; //right now it only account for one shared inventory per user
-    //             const inventoryId = inventoryDoc.id;
-
-    //             //fetch items from the subcollection
-    //             const itemsRef = await collection(db, "inventories", inventoryId, "items");
-    //             const itemsSnapshot = await getDocs(itemsRef);
-
-    //             const itemData = itemsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
-    //             setInventoryItems(itemData);
-    //         } catch (error) {
-    //             console.error("Failed to load inventory items: ", error.message);
-    //         }
-    //     };
-
-    //     fetchInventoryItems();
-
-    // }, [user]);
+    
 
     const handleAddMember = async () => {
         if (!user) {
