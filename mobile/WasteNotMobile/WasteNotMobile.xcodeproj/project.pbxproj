@@ -44,9 +44,22 @@
 		F2A4493FE0E1326E4DD1EC3E /* Pods-WasteNotMobileTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-WasteNotMobileTests.release.xcconfig"; path = "Target Support Files/Pods-WasteNotMobileTests/Pods-WasteNotMobileTests.release.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		8B08A54D2DB1E47E00162D33 /* Exceptions for "WasteNotMobile" folder in "WasteNotMobile" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"App/GoogleService-Info.plist",
+			);
+			target = 8BC203192D56BD6B0053288B /* WasteNotMobile */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		8BC2031C2D56BD6B0053288B /* WasteNotMobile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				8B08A54D2DB1E47E00162D33 /* Exceptions for "WasteNotMobile" folder in "WasteNotMobile" target */,
+			);
 			path = WasteNotMobile;
 			sourceTree = "<group>";
 		};

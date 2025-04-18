@@ -1,8 +1,7 @@
+// SharedInventoryManager.swift
+// WasteNotMobile
 //
-//  SharedInventoryManager.swift
-//  WasteNotMobile
-//
-//  Created by Ethan Yan on 12/4/25.
+// Created by Ethan Yan on 12/4/25.
 //
 
 import Foundation
@@ -10,11 +9,17 @@ import FirebaseFirestore
 import FirebaseAuth
 import Combine
 
+struct SharedInventory: Identifiable, Hashable {
+    let id: String
+    let name: String
+}
+
 class SharedInventoryManager: ObservableObject {
     static let shared = SharedInventoryManager()
     
     @Published var sharedInventories: [SharedInventory] = []
     @Published var selectedInventory: SharedInventory? = nil
+    @Published var isLoadingInventories: Bool = false   // ← new loading flag
     
     private let db = Firestore.firestore()
     private var cancellables = Set<AnyCancellable>()
@@ -25,16 +30,27 @@ class SharedInventoryManager: ObservableObject {
     
     func loadSharedInventories() {
         guard let user = Auth.auth().currentUser else {
-            self.sharedInventories = []
+            DispatchQueue.main.async {
+                self.sharedInventories = []
+                self.isLoadingInventories = false
+            }
             return
         }
+        
+        // indicate fetch in progress
+        isLoadingInventories = true
         
         db.collection("inventories")
             .whereField("membersArray", arrayContains: user.uid)
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching shared inventories: \(error.localizedDescription)")
-                } else if let snapshot = snapshot {
+                    DispatchQueue.main.async {
+                        self.sharedInventories = []
+                        self.isLoadingInventories = false
+                    }
+                }
+                else if let snapshot = snapshot {
                     let inventories = snapshot.documents.compactMap { doc -> SharedInventory? in
                         let data = doc.data()
                         guard let name = data["name"] as? String else { return nil }
@@ -42,10 +58,11 @@ class SharedInventoryManager: ObservableObject {
                     }
                     DispatchQueue.main.async {
                         self.sharedInventories = inventories
+                        // default‐select first if none chosen
                         if !inventories.isEmpty, self.selectedInventory == nil {
-                            // If no inventory is currently selected, default to the first one.
                             self.selectInventory(inventories.first!)
                         }
+                        self.isLoadingInventories = false
                     }
                 }
             }
@@ -53,8 +70,6 @@ class SharedInventoryManager: ObservableObject {
     
     func selectInventory(_ inventory: SharedInventory) {
         self.selectedInventory = inventory
-        // The updated InventoryService now reads directly from SharedInventoryManager.shared.selectedInventory,
-        // so there is no need to update a separate global variable here.
     }
     
     func refreshInventories() {

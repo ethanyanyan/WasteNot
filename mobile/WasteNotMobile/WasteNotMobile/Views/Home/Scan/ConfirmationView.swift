@@ -10,9 +10,13 @@ import FirebaseAuth
 import FirebaseFirestore
 import FirebaseRemoteConfig
 
+extension Notification.Name {
+    static let inventoryDidChange = Notification.Name("inventoryDidChange")
+}
+
 struct ConfirmationView: View {
     let scannedCode: String
-    var onCompletion: () -> Void   // Called when confirmation is done or cancelled
+    var onCompletion: () -> Void
 
     @EnvironmentObject var toastManager: ToastManager
     @ObservedObject var sharedInventoryManager = SharedInventoryManager.shared
@@ -20,22 +24,18 @@ struct ConfirmationView: View {
     @State private var itemName: String = ""
     @State private var quantity: String = "1"
     @State private var updateStatus: String?
-
-    // Additional product information
     @State private var productDescription: String = ""
     @State private var productImageURL: String = ""
     @State private var ingredients: String = ""
     @State private var nutritionFacts: String = ""
     @State private var productBrand: String = ""
     @State private var productTitle: String = ""
-
-    // Category & reminder date (as set by user)
     @State private var category: String = "Dairy"
     @State private var categories: [String] = ["Dairy", "Vegetables", "Frozen", "Bakery", "Meat", "Other"]
     @State private var reminderDate: Date = Date()
     @State private var reminderService = ReminderDateService()
     
-    // Remote Config variable for testing the confirmation button text
+    // Remote Config for button text:
     @State private var confirmButtonText: String = "Confirm and Update Inventory"
 
     var body: some View {
@@ -43,9 +43,7 @@ struct ConfirmationView: View {
             Section(header: Text("Scanned Details")) {
                 Text("Barcode: \(scannedCode)")
                 TextField("Item Name", text: $itemName)
-                    .onAppear {
-                        lookupProduct(for: scannedCode)
-                    }
+                    .onAppear { lookupProduct(for: scannedCode) }
                 HStack {
                     Text("Quantity:")
                     TextField("Quantity", text: $quantity)
@@ -55,9 +53,7 @@ struct ConfirmationView: View {
 
             Section(header: Text("Category & Reminder")) {
                 Picker("Category", selection: $category) {
-                    ForEach(categories, id: \.self) { cat in
-                        Text(cat)
-                    }
+                    ForEach(categories, id: \.self) { cat in Text(cat) }
                 }
                 DatePicker("Reminder Date", selection: $reminderDate, displayedComponents: [.date, .hourAndMinute])
             }
@@ -68,24 +64,23 @@ struct ConfirmationView: View {
                         .font(.caption)
                         .foregroundColor(.gray)
                 } else {
+                    // disable selection while loading
                     Picker("Shared Inventory", selection: $sharedInventoryManager.selectedInventory) {
                         ForEach(sharedInventoryManager.sharedInventories, id: \.self) { inventory in
                             Text(inventory.name).tag(inventory as SharedInventory?)
                         }
                     }
-                    .onChange(of: sharedInventoryManager.selectedInventory) { newValue in
-                        if let selected = newValue {
-                            sharedInventoryManager.selectInventory(selected)
-                        }
-                    }
+                    .disabled(sharedInventoryManager.isLoadingInventories)
                 }
             }
 
             Section {
-                // Button text is controlled by Remote Config for A/B testing.
                 Button(confirmButtonText) {
                     updateInventory()
                 }
+                // ← disabled until inventories have loaded and one is selected
+                .disabled(sharedInventoryManager.isLoadingInventories
+                          || sharedInventoryManager.selectedInventory == nil)
             }
 
             Section {
@@ -97,55 +92,41 @@ struct ConfirmationView: View {
         }
         .navigationTitle("Confirm Scan")
         .onAppear {
-            // Fetch default reminder date mapping.
+            // load inventories & defaults
+            sharedInventoryManager.refreshInventories()
             reminderService.fetchMapping {
                 let rawDefault = reminderService.defaultReminderDate(for: category)
-                let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
-                let leadTimeInSeconds = Int(globalLeadTime * 3600)
-                reminderDate = Calendar.current.date(byAdding: .second, value: -leadTimeInSeconds, to: rawDefault) ?? rawDefault
+                let lead = Int(UserSettingsManager.shared.defaultNotificationLeadTime * 3600)
+                reminderDate = Calendar.current.date(byAdding: .second, value: -lead, to: rawDefault) ?? rawDefault
             }
-            // Refresh shared inventories.
-            sharedInventoryManager.refreshInventories()
-            
-            // -----------------------------
-            // Firebase Remote Config Setup:
-            // -----------------------------
-            let remoteConfig = RemoteConfig.remoteConfig()
-            // Set a default value for the parameter so that the app works even if the fetch fails.
-            remoteConfig.setDefaults(["confirm_button_text": "Confirm and Update Inventory" as NSObject])
-            
-            // Fetch Remote Config values with an expiration duration.
-            remoteConfig.fetch(withExpirationDuration: 3600) { status, error in
+            // Remote Config
+            let rc = RemoteConfig.remoteConfig()
+            rc.setDefaults(["confirm_button_text": "Confirm and Update Inventory" as NSObject])
+            rc.fetch(withExpirationDuration: 3600) { status, error in
                 if status == .success {
-                    remoteConfig.activate { changed, error in
+                    rc.activate { _, _ in
                         DispatchQueue.main.async {
-                            self.confirmButtonText = remoteConfig["confirm_button_text"].stringValue ?? "Confirm and Update Inventory"
+                            confirmButtonText = rc["confirm_button_text"].stringValue ?? confirmButtonText
                         }
                     }
-                } else {
-                    print("Remote Config fetch failed: \(error?.localizedDescription ?? "No error available.")")
                 }
             }
-        }
-        .onChange(of: category) { newValue in
-            let rawDefault = reminderService.defaultReminderDate(for: newValue)
-            let globalLeadTime = UserSettingsManager.shared.defaultNotificationLeadTime
-            let leadTimeInSeconds = Int(globalLeadTime * 3600)
-            reminderDate = Calendar.current.date(byAdding: .second, value: -leadTimeInSeconds, to: rawDefault) ?? rawDefault
         }
     }
 
     private func updateInventory() {
         guard let qty = Int(quantity) else {
-            updateStatus = "Invalid quantity."
-            toastManager.show(message: updateStatus ?? "Invalid quantity.", isSuccess: false)
+            toastManager.show(message: "Invalid quantity.", isSuccess: false)
             return
         }
-
+        guard let inventoryId = sharedInventoryManager.selectedInventory?.id else {
+            toastManager.show(message: "No inventory selected.", isSuccess: false)
+            return
+        }
+        
         let currentUid = Auth.auth().currentUser?.uid ?? "Unknown"
-
         let newItem = InventoryItem(
-            id: "", // Will be set by service.
+            id: "",
             barcode: scannedCode,
             itemName: itemName,
             quantity: qty,
@@ -161,20 +142,22 @@ struct ConfirmationView: View {
             createdBy: currentUid,
             lastUpdatedBy: currentUid
         )
-
-        InventoryService.shared.addInventoryItem(newItem: newItem) { result in
+        
+        print("📦 ConfirmationView: adding '\(newItem.itemName)' to inventory \(inventoryId)")
+        InventoryService.shared.addInventoryItem(newItem: newItem,
+                                                 toInventoryId: inventoryId) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success:
+                    // tell InventoryView to refresh:
+                    NotificationCenter.default.post(name: .inventoryDidChange, object: nil)
+                    
                     toastManager.show(message: "Item added successfully!", isSuccess: true)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            onCompletion()
-                        }
+                        withAnimation(.easeInOut(duration: 0.3)) { onCompletion() }
                     }
                 case .failure(let error):
-                    updateStatus = "Error updating inventory: \(error.localizedDescription)"
-                    toastManager.show(message: updateStatus ?? "Error", isSuccess: false)
+                    toastManager.show(message: "Error: \(error.localizedDescription)", isSuccess: false)
                 }
             }
         }

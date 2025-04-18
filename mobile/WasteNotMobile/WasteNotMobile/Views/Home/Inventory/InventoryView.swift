@@ -81,26 +81,34 @@ struct InventoryView: View {
                     .onDelete(perform: deleteItems)
                 }
                 .onAppear {
-                    // Refresh shared inventories.
                     sharedInventoryManager.refreshInventories()
                     fetchNotificationCount()
-                    // Observe invitation acceptance notifications.
-                    NotificationCenter.default.addObserver(forName: NSNotification.Name("InvitationAccepted"), object: nil, queue: .main) { _ in
+                    NotificationCenter.default.addObserver(
+                        forName: NSNotification.Name("InvitationAccepted"),
+                        object: nil,
+                        queue: .main
+                    ) { _ in
                         sharedInventoryManager.refreshInventories()
                         fetchItems()
                     }
                 }
-                // Call fetchItems() when a shared inventory is selected.
-                .onReceive(sharedInventoryManager.$selectedInventory) { selected in
-                    if selected != nil {
+                // Whenever the user picks a different inventory, clear & refetch
+                .onChange(of: sharedInventoryManager.selectedInventory) { newInventory in
+                    inventoryItems = []
+                    if newInventory != nil {
                         fetchItems()
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .inventoryDidChange)) { _ in
+                    fetchItems()
+                }
                 .alert(item: Binding(
-                    get: { errorMessage == nil ? nil : InventoryError(message: errorMessage!) },
+                    get: { errorMessage.map { InventoryError(message: $0) } },
                     set: { _ in errorMessage = nil }
                 )) { error in
-                    Alert(title: Text("Error"), message: Text(error.message), dismissButton: .default(Text("OK")))
+                    Alert(title: Text("Error"),
+                          message: Text(error.message),
+                          dismissButton: .default(Text("OK")))
                 }
                 .sheet(item: $selectedItem, onDismiss: {
                     fetchItems()
@@ -155,7 +163,6 @@ struct InventoryView: View {
                             ForEach(sharedInventoryManager.sharedInventories, id: \.self) { inventory in
                                 Button(action: {
                                     sharedInventoryManager.selectInventory(inventory)
-                                    fetchItems()
                                 }) {
                                     Text(inventory.name)
                                 }
@@ -236,17 +243,20 @@ struct InventoryView: View {
     }
     
     private func fetchItems() {
-        // Check that a shared inventory is selected using the SharedInventoryManager.
-        guard sharedInventoryManager.selectedInventory != nil else {
-            print("No shared inventory selected. Will retry fetching items after delay.")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                fetchItems()
-            }
+        // If no selection, clear and bail.
+        guard let inventoryId = sharedInventoryManager.selectedInventory?.id else {
+            inventoryItems = []
             return
         }
-        
-        InventoryService.shared.fetchInventoryItems { result in
+        let currentId = inventoryId
+
+        InventoryService.shared.fetchInventoryItems(inventoryId: currentId) { result in
             DispatchQueue.main.async {
+                // Ignore any result that isn’t for the current selection
+                guard sharedInventoryManager.selectedInventory?.id == currentId else {
+                    print("Stale fetch result for \(currentId), skipping")
+                    return
+                }
                 switch result {
                 case .success(let items):
                     self.inventoryItems = items
