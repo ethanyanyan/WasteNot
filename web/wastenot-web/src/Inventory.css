@@ -101,6 +101,7 @@ button:hover {
 
 /* Add New Item Section */
 .add-item {
+  /* position:fixed; */
   background-color: #f9f9f9;
   padding: 20px;
   border-radius: 12px;
@@ -209,4 +210,65 @@ button:hover {
   transform: scale(1.05);
 }
 
+.add-member-section {
+  margin-top: 1em;
+}
 
+.member-display {
+  margin-top: 1em;
+  border-left: 1px solid #ccc;
+  padding-left: 1em;
+}
+
+.inventory-body {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* Left Side */
+.displayInventory {
+  flex: 2;
+  padding-right: 10px;
+}
+
+/* Right Side */
+.sharedInventory {
+  flex: 1;
+  padding-left: 10px;
+  border-left: 2px solid #ccc;
+}
+
+.add-member-section input {
+  padding: 12px;
+  margin: 10px 0;
+  border: 2px solid #008000;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #fff;
+  box-sizing: border-box;
+}
+/* Adjust on mobile */
+@media (max-width: 768px) {
+  .inventory-body {
+    flex-direction: column;
+  }
+
+  .displayInventory, .sharedInventory {
+    width: 100%;
+    padding: 0;
+    border-left: none;
+  }
+}
+
+.member-list {
+  list-style-type: none;
+  padding-left: 0;
+  padding-top: 5px;
+  margin: 10px; optional: remove default margin
+}
+
+.member-list li {
+  padding: 5px
+}
