@@ -6,10 +6,8 @@ import { useEffect, useState } from "react";
 import Navbar from "./Navbar";
 import Home from "./Home";
 import Inventory from "./Inventory";
-import SharedInventory from "./SharedInventory";
+// import SharedInventory from "./SharedInventory";
 import Scan from "./Scan";
-import Sensor from "./Sensor";
-import CommunitySwap from "./CommunitySwap";
 import Profile from "./Profile";
 import Login from "./Login";
 import SignUp from "./SignUp";
@@ -43,10 +41,8 @@ function App() {
                         <Route path="/signup" element={<SignUp />} />
                         <Route path="/home" element={user ? <Home /> : <Navigate to="/" />} />
                         <Route path="/inventory" element={user ? <Inventory /> : <Navigate to="/" />} />
-                        <Route path="/sharedinventory" element={user ? <SharedInventory /> : <Navigate to="/" />} />
+                        {/* <Route path="/sharedinventory" element={user ? <SharedInventory /> : <Navigate to="/" />} /> */}
                         <Route path="/scan" element={user ? <Scan /> : <Navigate to="/" />} />
-                        <Route path="/sensor" element={user ? <Sensor /> : <Navigate to="/" />} />
-                        <Route path="/communitySwap" element={user ? <CommunitySwap /> : <Navigate to="/" />} />
                         <Route path="/profile" element={user ? <Profile userData={userData} /> : <Navigate to="/" />} />
                     </Routes>
                 </div>
